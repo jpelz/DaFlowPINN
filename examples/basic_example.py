@@ -4,18 +4,21 @@ import os
 from DaFlowPINN.model.architectures import FCN
 from DaFlowPINN.boundaries import surface_samplers
 from DaFlowPINN.boundaries.internal_geometries import halfcylinder_3d
-from DaFlowPINN.model.core import PINN_3D
+from DaFlowPINN import PINN_3D
 
 def run_PINN():
 
-    name = "Test_Simple"
+    name = "BasicExample_HalfCylinder_Re640_p010"
 
     headdir = os.getcwd()
-    os.makedirs(f'{headdir}/{name}')
+
+
+    if not os.path.exists(f'{headdir}/{name}'):
+      os.makedirs(f'{headdir}/{name}')
     os.chdir(f'{headdir}/{name}')
     
     #Define a PINN using a fully connected network
-    PINN=PINN_3D(model=FCN, NAME="Test_Simple", Re=640, 
+    PINN=PINN_3D(model=FCN, NAME=name, Re=640, 
                  N_LAYERS=4, N_NEURONS=256, 
                  hardBC_sdf=None, fourier_feature=False)
     
@@ -25,7 +28,7 @@ def run_PINN():
     PINN.define_domain(lb, ub)
 
     #Add Data Points
-    data=np.loadtxt("examples/datasets/halfylinder_Re640/HalfcylinderTracks_p010_t14.5-15.dat", delimiter=" ")
+    data=np.loadtxt(f"{os.path.dirname(os.path.abspath(__file__))}/datasets/halfylinder_Re640/HalfcylinderTracks_p010_t14.5-15.dat", delimiter=" ")
     PINN.add_data_points(data)
 
     #Add Boundary Points:

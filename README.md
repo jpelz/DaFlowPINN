@@ -33,23 +33,38 @@ DaFlowPINN/
 
 ## 🛠 Installation
 
-From the project root:
+For example in [Google Colab](http://colab.research.google.com/):
 
 ```bash
-pip install -e .
+!git clone https://github.com/jpelz/DaFlowPINN.git
+!pip install DaFlowPINN
 ````
-
-This installs the package in **editable mode**.
 
 ---
 
 ## 📂 Examples
 
+For showcasing the usage of the Framework, the PINN is used for Data Assimilation of a virtual Particle Tracking Velocimetry (PTV) Measurement. The particles where seeded into a DNS-Simulation of the flow around a halfcylinder [1] at Re = 640.
+
 Run basic example:
 
 ```bash
-python examples/basic_example.py
+python DaFlowPINN/examples/basic_example.py
 ```
+
+
+Run example with configuration files:
+
+```bash
+python DAFlowPINN/examples/config_example.py DaFlowPINN/examples/basic_config.yaml
+```
+
+Available configurations (all with 10k particles per timestep):
+- basic_conig.yaml (Vanilla PINN Setup)
+- rff_config.yaml (PINN with Fourier Feature Embeddings)
+- hbc_config.yaml (PINN with forced exact boundary conditions using approximate distance functions)
+
+To change the seeding density, epchochs, optimizer,... edit the *.yaml files or create your own.
 
 ---
 
@@ -58,24 +73,38 @@ python examples/basic_example.py
 Here’s a minimal example of how to import and use core components:
 
 ```python
+import numpy as np
 from DaFlowPINN import PINN_3D
-from DaFlowPINN.config.config import load_config
+from DaFlowPINN.model.architectures import FCN
 
-config = load_config("config.yaml")
-model = PINN_3D(config)
-model.train()
+#Define a PINN using a fully connected network (Re not relevant when no physics points)
+
+PINN=PINN_3D(model=FCN, NAME=name, Re=640, 
+                N_LAYERS=4, N_NEURONS=256)
+
+#Define Domain
+lb=[-0.5, -1.5, -0.5, 14.5] #Lower bound of the domain (x, y, z, t)
+ub=[7.5, 1.5, 0.5, 15.0] #Upper bound of the domain (x, y, z, t)
+PINN.define_domain(lb, ub)
+
+data = np.load("DaFlowPINN/examples/datasets/halfylinder_Re640/HalfcylinderTracks_p010_t14.5-15.dat", delimiter=" ")
+PINN.add_data_points(data)
+
+PINN.add_optimizer("adam", lr=1e-3)
+
+PINN.add_2D_plot(plot_dims=[0,1], dim3_slice=0, t_slice=14.75, resolution=[640, 240])
+
+PINN.train(epochs=1000, print_freq=100, plot_freq=500)
 ```
 
 ---
 
-## 🧪 Testing
-
-*Coming soon*: Add tests under a `tests/` directory and use `pytest` for running unit tests.
-
----
 
 ## 📄 License
 
 MIT License. See `LICENSE` file for details.
 
 ---
+
+## References
+[1] https://cgl.ethz.ch/research/visualization/data.php

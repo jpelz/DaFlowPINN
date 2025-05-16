@@ -199,8 +199,8 @@ def plotPINN_2D(predict: callable, plot_dims: list = [0, 1], dim3_slice: float =
         vel_true = None
 
     # Predicted Data
-    xdim = np.linspace(lb[plot_dims[0]], ub[plot_dims[0]], resolution[0])
-    ydim = np.linspace(lb[plot_dims[1]], ub[plot_dims[1]], resolution[1])
+    xdim = np.linspace(lb[0], ub[0], resolution[0])
+    ydim = np.linspace(lb[1], ub[1], resolution[1])
 
     x, y = np.meshgrid(xdim, ydim)
 

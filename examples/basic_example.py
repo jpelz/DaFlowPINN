@@ -45,7 +45,7 @@ def run_PINN():
     t_plot=[14.5, 14.75, 15.0] #select timesteps to plot
 
     for t in t_plot:
-        PINN.add_2D_plot(plot_dims=[0,1], dim3_slice=0, t_slice=t, plot_data=True, resolution=[640, 240])
+        PINN.add_2D_plot(component1=0, component2=None, plot_dims=[0,1], dim3_slice=0, t_slice=t, plot_data=True, resolution=[640, 240])
 
     #Train PINN
     PINN.train(epochs=1000, print_freq=100, plot_freq=200, autoweight_scheme=3)

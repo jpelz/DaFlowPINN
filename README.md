@@ -64,7 +64,7 @@ Available configurations (all with 10k particles per timestep):
 - rff_config.yaml (PINN with Fourier Feature Embeddings)
 - hbc_config.yaml (PINN with forced exact boundary conditions using approximate distance functions)
 
-To change the seeding density, epchochs, optimizer,... edit the *.yaml files or create your own.
+To change the seeding density, epochs, optimizer,... edit the *.yaml files or create your own.
 
 ---
 
@@ -87,14 +87,34 @@ lb=[-0.5, -1.5, -0.5, 14.5] #Lower bound of the domain (x, y, z, t)
 ub=[7.5, 1.5, 0.5, 15.0] #Upper bound of the domain (x, y, z, t)
 PINN.define_domain(lb, ub)
 
+#Add training data
 data = np.load("DaFlowPINN/examples/datasets/halfylinder_Re640/HalfcylinderTracks_p010_t14.5-15.dat", delimiter=" ")
 PINN.add_data_points(data)
 
+
+#Select optimizer
 PINN.add_optimizer("adam", lr=1e-3)
 
-PINN.add_2D_plot(plot_dims=[0,1], dim3_slice=0, t_slice=14.75, resolution=[640, 240])
+#Add plot
+PINN.add_2D_plot(component1=0, component2=None,
+                 plot_dims=[0,1], dim3_slice=0, t_slice=14.75, resolution=[640, 240])
 
 PINN.train(epochs=1000, print_freq=100, plot_freq=500)
+```
+
+Each run creates files for the loss history, the defined plots and more.  
+The trained PINN is saved in `*_predictable.pt` and can be used as follows:
+
+```python
+import torch
+from DaFlowPINN.model.core import load_predictable
+
+pinn_prediction = load_predictable("example_predictable.pt")
+
+X = torch.tensor([2, 1, 0.2, 14.7]) #X,Y,Z,T
+
+Y = pinn_prediction(X)
+
 ```
 
 ---

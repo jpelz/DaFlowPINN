@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "DaFlowPINN"
+version = "0.1.0"
+description = "Physics-Informed Neural Network for Data Assimilation of Flow Fields"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    { name = "Jonas Pelz" }
+]
+license = { text = "MIT" }
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: MIT License"
+]
+
+dependencies = [ 
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "torch",
+    "torchvision",
+    "netcdf4",
+    "pandas",
+    "vtk",
+    "conflictfree"
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

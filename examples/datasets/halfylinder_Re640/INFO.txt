@@ -1,0 +1,27 @@
+#Method:
+Particle advection was simulated using Runge-Kutta 4th order in time and spatial linear interpolation for velocities.
+(Generation code can be found in /master_thesis_code/ParticleTrackGeneration)
+
+
+#Original DNS data:
+NetCDF4 file from https://cgl.ethz.ch/research/visualization/data.php
+
+#Domain info:
+domain:
+  x_min: -0.5
+  y_min: -1.5
+  z_min: -0.5
+  x_max: 7.5
+  y_max: 1.5
+  z_max: 0.5
+  t_min: 14.5
+  t_max: 15.0
+
+Re = 640
+dt = 0.1
+
+#Particle Concentrations:
+p001 - 1k particles / timstep
+p010 - 10k particles / timstep
+p050 - 50k particles / timstep
+p200 - 200k particles / timstep

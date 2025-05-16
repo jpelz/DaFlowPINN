@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 from DaFlowPINN.model.architectures import FCN
 from DaFlowPINN.boundaries import surface_samplers
@@ -6,6 +7,12 @@ from DaFlowPINN.boundaries.internal_geometries import halfcylinder_3d
 from DaFlowPINN.model.core import PINN_3D
 
 def run_PINN():
+
+    name = "Test_Simple"
+
+    headdir = os.getcwd()
+    os.makedirs(f'{headdir}/{name}')
+    os.chdir(f'{headdir}/{name}')
     
     #Define a PINN using a fully connected network
     PINN=PINN_3D(model=FCN, NAME="Test_Simple", Re=640, 
@@ -39,6 +46,8 @@ def run_PINN():
 
     #Train PINN
     PINN.train(epochs=1000, print_freq=100, plot_freq=200, autoweight_scheme=3)
+
+    os.chdir(headdir)
 
 
 if __name__ == "__main__":

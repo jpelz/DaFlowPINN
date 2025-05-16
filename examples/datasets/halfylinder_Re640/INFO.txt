@@ -24,4 +24,4 @@ dt = 0.1
 p001 - 1k particles / timstep
 p010 - 10k particles / timstep
 p050 - 50k particles / timstep
-p200 - 200k particles / timstep
+p200 - too large for GitHub

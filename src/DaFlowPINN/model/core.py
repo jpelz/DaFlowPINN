@@ -1872,24 +1872,7 @@ class CustomDataset(Dataset):
       return self.Xdata[idx_0:idx_1, :].to(self.device).float()
 
 
-#MARK: Geometry & Sampling
-def halfcylinder_3d(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
-  """
-  Determines if the given coordinates are inside a half-cylinder with diameter 0.25.
-
-  Args:
-    x (np.ndarray): x-coordinates.
-    y (np.ndarray): y-coordinates.
-    z (np.ndarray): z-coordinates.
-
-  Returns:
-    np.ndarray: Boolean array indicating if each coordinate is inside the half-cylinder.
-  """
-  r = 0.25 / 2  # Radius of the half-cylinder
-  inside = ((x**2 + y**2) < r**2) & (x < 0)  # Check if inside the half-cylinder
-  return inside.astype(bool)
-
-
+#MARK: Physics Point Sampling
 def sample_interior_points(nb: int, lb: np.ndarray, ub: np.ndarray, geometry: callable = None) -> np.ndarray:
   """
   Samples interior points within the specified domain using Latin Hypercube Sampling (LHS).
@@ -1920,10 +1903,7 @@ def sample_interior_points(nb: int, lb: np.ndarray, ub: np.ndarray, geometry: ca
       insiders = geometry(sample[:, 0], sample[:, 1], sample[:, 2])
 
   return sample
-      
-def signed_L2_norm(x: torch.Tensor) -> torch.Tensor:
-  inner = torch.sum(x * x.abs())
-  return torch.sign(inner) * torch.sqrt(inner.abs())
+
 
 
 

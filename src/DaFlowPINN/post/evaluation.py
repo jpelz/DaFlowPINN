@@ -336,4 +336,3 @@ def plotTruthXY(datafile, z, t):
     plotField2(x, y, v_data, None, None, None, label1,
                x, y, w_data, None, None, None, label2,
                title, filename)
-

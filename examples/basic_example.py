@@ -26,7 +26,7 @@ def run_PINN():
     PINN.add_boundary_condition(sampler, N_BC_POINTS=4096, weight=0.1)
 
     #Add Physics Points:
-    PINN.add_physics_points(N_COLLOCATION=8192, N_BATCHES=4, geometry=halfcylinder_3d(r=0.125), weight=1e-6)
+    PINN.add_physics_points(N_COLLOCATION=8192, batch_size=1024, geometry=halfcylinder_3d(r=0.125), weight=1e-6)
 
     #Select Optimizer
     PINN.add_optimizer("adam", lr=1e-3)

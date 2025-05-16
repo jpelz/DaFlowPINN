@@ -506,7 +506,6 @@ class PINN_3D(nn.Module):
     X, Y = self.dimensionless(X, Y)
 
     # Set Normalization
-
     self.norm_scales = torch.tensor([X[:, 0].max() - X[:, 0].min(),
                                      X[:, 1].max() - X[:, 1].min(),
                                      X[:, 2].max() - X[:, 2].min(),
@@ -514,7 +513,7 @@ class PINN_3D(nn.Module):
                                      Y[:, 0].max() - Y[:, 0].min(),
                                      Y[:, 1].max() - Y[:, 1].min(),
                                      Y[:, 2].max() - Y[:, 2].min(),
-                                     1], device=self.device) #/2
+                                     1], device=self.device) #/2    # --> for -1 to 1 normalization
 
     self.norm_offsets = torch.tensor([X[:, 0].min(),
                                       X[:, 1].min(),
@@ -523,7 +522,9 @@ class PINN_3D(nn.Module):
                                       Y[:, 0].min(),
                                       Y[:, 1].min(),
                                       Y[:, 2].min(),
-                                      0], device=self.device) #+ 1 * self.norm_scales
+                                      0], device=self.device) #+ 1 * self.norm_scales   # --> for -1 to 1 normalization
+
+    #Z-Score normalization:
 
     # self.norm_scales = torch.tensor([X[:, 0].std(),
     #                             X[:, 1].std(),
@@ -543,6 +544,7 @@ class PINN_3D(nn.Module):
     #                               Y[:, 2].mean(),
     #                               0], device=self.device)
 
+    # Compute scaling facors for weighted MSE loss
     loss_scale_u = 1
     loss_scale_v = self.norm_scales[5]/self.norm_scales[4]
     loss_scale_w = self.norm_scales[6]/self.norm_scales[4]
@@ -550,12 +552,15 @@ class PINN_3D(nn.Module):
     
     self.loss_scales = torch.tensor([loss_scale_u, loss_scale_v, loss_scale_w])
 
+
+    #print(f"Normalization scales: {self.norm_scales}")
+    #print(f"New RFF Scales: {self.model.scales}")
+
+    # Rescale RFF-Parameters
     if hasattr(self.model, "rff"):      
       self.model.rff.scales = nn.Parameter(self.model.rff.scales * self.norm_scales[0:4], requires_grad=False)
 
-    print(f"Normalization scales: {self.norm_scales}") #print to rescalculate fourier feature scales
-    #print(f"New RFF Scales: {self.model.scales}")
-
+    # Rescale HBC-Parameters
     if hasattr(self.model, "hbc"):
       self.model.hbc.offset = nn.Parameter(torch.tensor(((self.model.hbc.offset[0]-self.norm_offsets[4])/self.norm_scales[4],
                                              (self.model.hbc.offset[1]-self.norm_offsets[5])/self.norm_scales[5],
@@ -577,12 +582,12 @@ class PINN_3D(nn.Module):
       self.X_test = X[test_idx, :].to(self.device)
       self.Y_test = Y[test_idx, :].to(self.device)
 
-      np.savez("DA_CASE01_t_23_25_p200.npz",
-      x_train = self.redimension(self.denormalize(self.X_train)).cpu().numpy(),
-      y_train = self.redimension(y=self.denormalize(y=self.Y_train)).cpu().numpy(),
-      x_test = self.redimension(self.denormalize(self.X_test)).cpu().numpy(),
-      y_test = self.redimension(y=self.denormalize(y=self.Y_test)).cpu().numpy())
-      print("done...")
+      #in case of data export:
+      # np.savez("data.npz",
+      # x_train = self.redimension(self.denormalize(self.X_train)).cpu().numpy(),
+      # y_train = self.redimension(y=self.denormalize(y=self.Y_train)).cpu().numpy(),
+      # x_test = self.redimension(self.denormalize(self.X_test)).cpu().numpy(),
+      # y_test = self.redimension(y=self.denormalize(y=self.Y_test)).cpu().numpy())
     
     else:
       self.X_train = X.to(self.device)
@@ -593,7 +598,7 @@ class PINN_3D(nn.Module):
     self.N_DATA = len(self.X_train[:, 0])
 
 
-    #for tests:
+    #in case of data import:
 
     # if self.N_DATA > 300000:
     #   name = "200"
@@ -931,7 +936,7 @@ class PINN_3D(nn.Module):
 
       if self.X_test is not None:
         abs_rmse, rel_rmse, abs_mae, rel_mae = detailed_data_err(self.model, self.X_test, self.Y_test, self.denormalize, self.redimension)
-        print("    Detailed Data Errors (Test):")
+        print("    Detailed Data Errors (for Test-Data):")
         print(f"      MAE (u,v,w) in m/s: {abs_mae}")
         print(f"      MAE (u,v,w) in %: {rel_mae}")
         print(f"      RMSE (u,v,w) in m/s: {abs_rmse}")
@@ -940,6 +945,7 @@ class PINN_3D(nn.Module):
         self.hist_RMSE_test_u.append(abs_rmse[0])
         self.hist_RMSE_test_v.append(abs_rmse[1])
         self.hist_RMSE_test_w.append(abs_rmse[2])
+
 
 
       
@@ -986,16 +992,6 @@ class PINN_3D(nn.Module):
         loss_ns.backward()
 
       grad = get_gradient_vector(self.model, flat = flat_grad)
-      
-      #self.norm_scales[7]=abs(pmax-pmin)
-      #self.norm_offsets[7]=pmin
-
-      #lr = 5E-2
-      #if pmax > 1: self.norm_scales[7]*=(1+lr)
-      #else: self.norm_scales[7]*=(1-lr)
-
-      #if pmin > 0: self.norm_scales[7]*=(1+lr)
-      #else: self.norm_scales[7]*=(1-lr)
 
 
       return loss_ns.detach(), grad
@@ -1033,7 +1029,7 @@ class PINN_3D(nn.Module):
 
       grads.append(grad_data)
       weights.append(self.lambda_data)
-      #self.optimizer.step()
+
 
       # Compute boundary condition loss if boundary points are available
       if self.N_BC > 0:
@@ -1048,10 +1044,8 @@ class PINN_3D(nn.Module):
           self.loss_bc += loss / n_batches
           grad_bc += grad / n_batches
 
-        
         grads.append(grad_bc)
         weights.append(self.lambda_bc)
-        #self.optimizer2.step()
 
       # Compute physics loss if collocation points are available
       if self.N_COLLOCATION > 0:
@@ -1069,7 +1063,6 @@ class PINN_3D(nn.Module):
 
         grads.append(grad_ns)
         weights.append(self.lambda_ns)
-        #self.optimizer3.step()
 
 
       if self.autoweight and (self.epoch % self.weight_update_freq == 0) and (self.inner_iter == 0):
@@ -1517,9 +1510,13 @@ class PINN_3D(nn.Module):
     self.plot_history()  # Plot the final loss history
     self.plot_field()  # Plot the final field
     self.save_hist(f"{self.NAME}_history.csv")
+    
+    self.save(f"{self.NAME}_final_state.pt")
+      
+
     print("Training finished!")
 
-    self.save(f"{self.NAME}_final_state.pt")
+    
 
 
   #MARK: Plot History
@@ -1661,6 +1658,13 @@ class PINN_3D(nn.Module):
 
     hist = hist.detach().numpy().T
     np.savetxt(path, hist, header=header, delimiter=",", comments="")
+
+    if self.X_train is not None:
+      epochs = torch.arange(len(self.hist_RMSE_train_u))*self.print_freq
+      hist = torch.vstack((epochs, torch.tensor(self.hist_RMSE_train_u), torch.tensor(self.hist_RMSE_train_v), torch.tensor(self.hist_RMSE_train_w)))
+      header = 'Epoch,RMSE_train_u,RMSE_train_v,RMSE_train_w'
+      hist = hist.detach().numpy().T
+      np.savetxt(path.replace('.csv', '_rmse.csv'), hist, header=header, delimiter=",", comments="")
 
   #Mark Save & load state dict
   def save(self, path: str) -> None:

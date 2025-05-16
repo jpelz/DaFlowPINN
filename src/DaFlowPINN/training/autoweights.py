@@ -16,10 +16,8 @@ class WeightUpdater:
 
         new_weights = []
         
-
-        
-
         if self.scheme == 1 or self.scheme == None:
+            # ConflictFree or no Auto Weights
             new_weights = current_weights
 
         elif self.scheme == 2:
@@ -37,22 +35,21 @@ class WeightUpdater:
             for i in range(len(current_weights)):
               new_weights[i] = self.alpha * current_weights[i] + (1-self.alpha) * new_weights[i] #/ max_weight
 
-        elif self.scheme == 3 or self.scheme == 4:
+        elif self.scheme == 3:
             # Source: Wang 2021 - https://epubs.siam.org/doi/epdf/10.1137/20M1318043 - PDE weight is 1"
 
             # --> Modified so data loss is 1
-            # --> 4 is for combination with conflictfree
             
             #Data weight
             new_weights.append(torch.tensor(1, device=self.device).float())
 
             if len(current_weights) == 3:
               #BC weight
-              lambda_bc = torch.mean(torch.abs(grads[0])) / torch.mean(torch.abs(current_weights[1]*grads[1]))
+              lambda_bc = torch.mean(torch.abs(grads[0])) / torch.mean(torch.abs(grads[1]))
               new_weights.append(self.alpha * current_weights[1] + (1-self.alpha) * lambda_bc)
 
             #NS weight
-            lambda_ns = torch.mean(torch.abs(grads[0])) / torch.abs(current_weights[-1]*grads[-1]).max()
+            lambda_ns = torch.mean(torch.abs(grads[0])) / torch.abs(grads[-1]).max()
             new_weights.append(self.alpha * current_weights[-1] + (1-self.alpha) * lambda_ns)
 
 
@@ -65,26 +62,25 @@ class WeightUpdater:
 
 
         elif self.scheme == 4:
-          grad_norms = []
-          for i in range(len(grads)):
-            grad_norms.append(grads[i].norm())
+            # Source: Wang 2021 - https://epubs.siam.org/doi/epdf/10.1137/20M1318043 - PDE weight is 1"
 
-          min_norm = min(grad_norms)
+            # --> Original:
+            
+            #Data weight
+            lambda_data = torch.abs(grads[-1]).max() / torch.mean(torch.abs(grads[0]))
+            new_weights.append(self.alpha * current_weights[0] + (1-self.alpha) * lambda_data)
 
-          for i in range(len(current_weights)):
-            new_weights.append(min_norm/grad_norms[i])
+            if len(current_weights) == 3:
+              #BC weight
+              lambda_bc = torch.abs(grads[-1]).max() / torch.mean(torch.abs(grads[1]))
+              new_weights.append(self.alpha * current_weights[1] + (1-self.alpha) * lambda_bc)
 
-          max_weight = max(new_weights)
-
-          for i in range(len(current_weights)):
-            new_weights[i] = self.alpha * current_weights[i] + (1-self.alpha) * new_weights[i]
+            #NS weight
+            new_weights.append(torch.tensor(1, device=self.device).float())
 
 
         else:
             raise ValueError("Invalid auto weight type.")
-
-        # for i in range(len(new_weights)):
-        #   new_weights[i] /= max(new_weights)
 
         return new_weights
     
@@ -95,9 +91,6 @@ class WeightUpdater:
 
             from conflictfree.grad_operator import ConFIG_update
             new_grads = ConFIG_update(grads)
-        elif self.scheme == 4:
-          from conflictfree.grad_operator import ConFIG_update
-          new_grads = ConFIG_update(grads, weight_model=self.configModel)
 
         else:
             grads = torch.stack(grads)

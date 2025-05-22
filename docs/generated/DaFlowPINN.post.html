@@ -1,0 +1,841 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="DaFlowPINN.training package" href="DaFlowPINN.training.html" /><link rel="prev" title="DaFlowPINN.model package" href="DaFlowPINN.model.html" />
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2024.08.06 -->
+        <title>DaFlowPINN.post package - DaFlowPINNs documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">DaFlowPINNs  documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  
+  <span class="sidebar-brand-text">DaFlowPINNs  documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../home.html">Home</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="DaFlowPINN.html">Documentation</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="DaFlowPINN.boundaries.html">DaFlowPINN.boundaries package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DaFlowPINN.config.html">DaFlowPINN.config package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DaFlowPINN.model.html">DaFlowPINN.model package</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">DaFlowPINN.post package</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="DaFlowPINN.training.html">DaFlowPINN.training package</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of DaFlowPINN.training package</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="DaFlowPINN.training.optim.html">DaFlowPINN.training.optim package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/generated/DaFlowPINN.post.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="daflowpinn-post-package">
+<h1>DaFlowPINN.post package<a class="headerlink" href="#daflowpinn-post-package" title="Link to this heading">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-DaFlowPINN.post.evaluation">
+<span id="daflowpinn-post-evaluation-module"></span><h2>DaFlowPINN.post.evaluation module<a class="headerlink" href="#module-DaFlowPINN.post.evaluation" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="DaFlowPINN.post.evaluation.abs_mae">
+<span class="sig-prename descclassname"><span class="pre">DaFlowPINN.post.evaluation.</span></span><span class="sig-name descname"><span class="pre">abs_mae</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Y_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y_true</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#DaFlowPINN.post.evaluation.abs_mae" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the absolute Mean Absolute Error (MAE) between predictions and ground truth.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Y_pred</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</span>) – Predicted values (torch.Tensor or np.ndarray).</p></li>
+<li><p><strong>Y_true</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</span>) – Ground truth values (torch.Tensor or np.ndarray).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The absolute MAE as a float.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="DaFlowPINN.post.evaluation.abs_rmse">
+<span class="sig-prename descclassname"><span class="pre">DaFlowPINN.post.evaluation.</span></span><span class="sig-name descname"><span class="pre">abs_rmse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Y_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y_true</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#DaFlowPINN.post.evaluation.abs_rmse" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the absolute Root Mean Squared Error (RMSE) between predictions and ground truth.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Y_pred</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</span>) – Predicted values (torch.Tensor or np.ndarray).</p></li>
+<li><p><strong>Y_true</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</span>) – Ground truth values (torch.Tensor or np.ndarray).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The absolute RMSE as a float.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="DaFlowPINN.post.evaluation.detailed_data_err">
+<span class="sig-prename descclassname"><span class="pre">DaFlowPINN.post.evaluation.</span></span><span class="sig-name descname"><span class="pre">detailed_data_err</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y_true</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">denormalize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redimension</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#DaFlowPINN.post.evaluation.detailed_data_err" title="Link to this definition">¶</a></dt>
+<dd><p>Compute detailed error metrics (RMSE and MAE, both absolute and relative) for u, v, w components
+between model predictions and ground truth.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></span>) – The trained PyTorch model to evaluate.</p></li>
+<li><p><strong>X</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Input tensor for the model.</p></li>
+<li><p><strong>Y_true</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Ground truth tensor.</p></li>
+<li><p><strong>denormalize</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">callable</span></code></span>) – Function to denormalize the output.</p></li>
+<li><p><strong>redimension</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">callable</span></code></span>) – Function to reshape or redimension the output.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>List of absolute RMSE values for u, v, w.</p></li>
+<li><p>List of relative RMSE values for u, v, w.</p></li>
+<li><p>List of absolute MAE values for u, v, w.</p></li>
+<li><p>List of relative MAE values for u, v, w.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple containing</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="DaFlowPINN.post.evaluation.evaluatePINN">
+<span class="sig-prename descclassname"><span class="pre">DaFlowPINN.post.evaluation.</span></span><span class="sig-name descname"><span class="pre">evaluatePINN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datafile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nt_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nz_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nx_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ny_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#DaFlowPINN.post.evaluation.evaluatePINN" title="Link to this definition">¶</a></dt>
+<dd><p>Evaluate a Physics-Informed Neural Network (PINN) model against ground truth data, compute error metrics,
+and generate diagnostic plots.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predict</strong> (<em>callable</em>) – The PINN model’s prediction function, which takes a tensor of input coordinates and returns predicted velocity components.</p></li>
+<li><p><strong>datafile</strong> (<em>str</em>) – Path to the file containing ground truth data.</p></li>
+<li><p><strong>outputfile</strong> (<em>str</em>) – Path to the output file where evaluation results will be written.</p></li>
+<li><p><strong>tmin</strong> (<em>float</em>) – Minimum time value to consider from the data.</p></li>
+<li><p><strong>tmax</strong> (<em>float</em>) – Maximum time value to consider from the data.</p></li>
+<li><p><strong>nt_max</strong> (<em>int</em>) – Maximum number of time steps to load.</p></li>
+<li><p><strong>zmin</strong> (<em>float</em>) – Minimum z-coordinate value to consider from the data.</p></li>
+<li><p><strong>zmax</strong> (<em>float</em>) – Maximum z-coordinate value to consider from the data.</p></li>
+<li><p><strong>nz_max</strong> (<em>int</em>) – Maximum number of z slices to load.</p></li>
+<li><p><strong>nx_max</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of x grid points to load. Defaults to None (load all).</p></li>
+<li><p><strong>ny_max</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of y grid points to load. Defaults to None (load all).</p></li>
+<li><p><strong>z_plot</strong> (<em>float</em><em> or </em><em>list</em><em>[</em><em>float</em><em>]</em><em>, </em><em>optional</em>) – z-coordinate(s) at which to plot error fields. Defaults to 0.</p></li>
+<li><p><strong>t_plot</strong> (<em>float</em><em> or </em><em>list</em><em>[</em><em>float</em><em>]</em><em>, </em><em>optional</em>) – Time(s) at which to plot error fields. Defaults to 0.</p></li>
+<li><p><strong>**kwargs</strong> – Additional keyword arguments to be logged in the output file.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Side Effects:</dt><dd><ul class="simple">
+<li><p>Writes evaluation metrics (MAE, RMSE, relative errors) to the specified output file.</p></li>
+<li><p>Saves error fields as a NumPy .npz file (“error_fields.npz”).</p></li>
+<li><p>Generates and saves diagnostic plots for error fields at specified slices.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="DaFlowPINN.post.evaluation.load_data">
+<span class="sig-prename descclassname"><span class="pre">DaFlowPINN.post.evaluation.</span></span><span class="sig-name descname"><span class="pre">load_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">datafile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nt_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nz_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nx_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ny_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#DaFlowPINN.post.evaluation.load_data" title="Link to this definition">¶</a></dt>
+<dd><p>Load and subsample ground truth velocity fields from a NetCDF (.nc) file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>datafile</strong> (<em>str</em>) – Path to the NetCDF file containing the data.</p></li>
+<li><p><strong>tmin</strong> (<em>float</em>) – Minimum time value to include.</p></li>
+<li><p><strong>tmax</strong> (<em>float</em>) – Maximum time value to include.</p></li>
+<li><p><strong>nt_max</strong> (<em>int</em>) – Maximum number of time steps to load.</p></li>
+<li><p><strong>zmin</strong> (<em>float</em>) – Minimum z-coordinate value to include.</p></li>
+<li><p><strong>zmax</strong> (<em>float</em>) – Maximum z-coordinate value to include.</p></li>
+<li><p><strong>nz_max</strong> (<em>int</em>) – Maximum number of z slices to load.</p></li>
+<li><p><strong>nx_max</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of x slices to load. If None, use all.</p></li>
+<li><p><strong>ny_max</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of y slices to load. If None, use all.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>(xdim_filt, ydim_filt, zdim_filt, tdim_filt, u_data, v_data, w_data)</dt><dd><ul class="simple">
+<li><p>xdim_filt (np.ndarray): Filtered x-dimension coordinates.</p></li>
+<li><p>ydim_filt (np.ndarray): Filtered y-dimension coordinates.</p></li>
+<li><p>zdim_filt (np.ndarray): Filtered z-dimension coordinates.</p></li>
+<li><p>tdim_filt (np.ndarray): Filtered time steps.</p></li>
+<li><p>u_data (np.ndarray): Filtered u-velocity field data.</p></li>
+<li><p>v_data (np.ndarray): Filtered v-velocity field data.</p></li>
+<li><p>w_data (np.ndarray): Filtered w-velocity field data.</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The function applies filtering and subsampling along the time, z, x, and y dimensions
+according to the provided limits and maximums. The returned arrays are suitable for
+use as ground truth fields in PINN evaluation or other post-processing tasks.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="DaFlowPINN.post.evaluation.plotTruthXY">
+<span class="sig-prename descclassname"><span class="pre">DaFlowPINN.post.evaluation.</span></span><span class="sig-name descname"><span class="pre">plotTruthXY</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">datafile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#DaFlowPINN.post.evaluation.plotTruthXY" title="Link to this definition">¶</a></dt>
+<dd><p>Plots the true velocity field components from a NetCDF data file at a specified z and t location.</p>
+<p>This function extracts the velocity components (u, v, w) from the given NetCDF file at the closest available
+z and t indices to the provided values. It computes the velocity magnitude and generates two plots:
+one showing the magnitude and u component, and another showing the v and w components, both as functions of x and y.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>datafile</strong> (<em>str</em>) – Path to the NetCDF data file containing the velocity field data.</p></li>
+<li><p><strong>z</strong> (<em>float</em>) – The z-coordinate at which to extract and plot the data.</p></li>
+<li><p><strong>t</strong> (<em>float</em>) – The time value at which to extract and plot the data.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The function saves the generated plots to files and does not return any value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>The function assumes the NetCDF file contains variables ‘xdim’, ‘ydim’, ‘zdim’, ‘tdim’, ‘u’, ‘v’, and ‘w’.</p></li>
+<li><p>The output plots are saved as PNG files with filenames indicating the z and t values.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="DaFlowPINN.post.evaluation.rel_mae">
+<span class="sig-prename descclassname"><span class="pre">DaFlowPINN.post.evaluation.</span></span><span class="sig-name descname"><span class="pre">rel_mae</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Y_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y_true</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#DaFlowPINN.post.evaluation.rel_mae" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the relative Mean Absolute Error (MAE) in percent between predictions and ground truth.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Y_pred</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</span>) – Predicted values (torch.Tensor or np.ndarray).</p></li>
+<li><p><strong>Y_true</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</span>) – Ground truth values (torch.Tensor or np.ndarray).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The relative MAE as a percentage (float).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="DaFlowPINN.post.evaluation.rel_rmse">
+<span class="sig-prename descclassname"><span class="pre">DaFlowPINN.post.evaluation.</span></span><span class="sig-name descname"><span class="pre">rel_rmse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Y_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y_true</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#DaFlowPINN.post.evaluation.rel_rmse" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the relative Root Mean Squared Error (RMSE) in percent between predictions and ground truth.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Y_pred</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</span>) – Predicted values (torch.Tensor or np.ndarray).</p></li>
+<li><p><strong>Y_true</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</span>) – Ground truth values (torch.Tensor or np.ndarray).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The relative RMSE as a percentage (float).</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-DaFlowPINN.post.export">
+<span id="daflowpinn-post-export-module"></span><h2>DaFlowPINN.post.export module<a class="headerlink" href="#module-DaFlowPINN.post.export" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="DaFlowPINN.post.export.export_h5">
+<span class="sig-prename descclassname"><span class="pre">DaFlowPINN.post.export.</span></span><span class="sig-name descname"><span class="pre">export_h5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_slice</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_ref_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">0]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#DaFlowPINN.post.export.export_h5" title="Link to this definition">¶</a></dt>
+<dd><p>Export predicted velocity, pressure, and their gradients to an HDF5 (.h5) file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predict</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">callable</span></code></span>) – Callable that takes a tensor of shape (N, 4) and returns predictions.</p></li>
+<li><p><strong>x_grid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – 3D numpy arrays defining the spatial grid.</p></li>
+<li><p><strong>y_grid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – 3D numpy arrays defining the spatial grid.</p></li>
+<li><p><strong>z_grid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – 3D numpy arrays defining the spatial grid.</p></li>
+<li><p><strong>t_slice</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Time value for the prediction.</p></li>
+<li><p><strong>dx</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Grid spacings in x, y, z directions.</p></li>
+<li><p><strong>dy</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Grid spacings in x, y, z directions.</p></li>
+<li><p><strong>dz</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Grid spacings in x, y, z directions.</p></li>
+<li><p><strong>filename</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Output HDF5 file path.</p></li>
+<li><p><strong>p_ref_idx</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]</span>) – Index [ix, iy, iz] for pressure reference point (default [0,0,0]).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="DaFlowPINN.post.export.export_vti">
+<span class="sig-prename descclassname"><span class="pre">DaFlowPINN.post.export.</span></span><span class="sig-name descname"><span class="pre">export_vti</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_slices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_ref_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">0]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#DaFlowPINN.post.export.export_vti" title="Link to this definition">¶</a></dt>
+<dd><p>Export predicted velocity and pressure fields as VTK ImageData (.vti) files and a .pvd collection for ParaView.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predict</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">callable</span></code></span>) – Callable that takes a tensor of shape (N, 4) and returns predictions.</p></li>
+<li><p><strong>x_grid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – 3D numpy arrays defining the spatial grid.</p></li>
+<li><p><strong>y_grid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – 3D numpy arrays defining the spatial grid.</p></li>
+<li><p><strong>z_grid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – 3D numpy arrays defining the spatial grid.</p></li>
+<li><p><strong>t_slices</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></span>) – List of time values for which to export data.</p></li>
+<li><p><strong>filename</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Output file prefix for the VTI and PVD files.</p></li>
+<li><p><strong>p_ref_idx</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></span>) – Index [ix, iy, iz] for pressure reference point (default [0,0,0]).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="DaFlowPINN.post.export.export_vts">
+<span class="sig-prename descclassname"><span class="pre">DaFlowPINN.post.export.</span></span><span class="sig-name descname"><span class="pre">export_vts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_slices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_ref_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">0]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#DaFlowPINN.post.export.export_vts" title="Link to this definition">¶</a></dt>
+<dd><p>Export predicted velocity and pressure fields to VTK Structured Grid (.vts) files for ParaView.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predict</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">callable</span></code></span>) – Callable that takes a tensor of shape (N, 4) and returns predictions.</p></li>
+<li><p><strong>x_grid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – 3D numpy arrays defining the spatial grid.</p></li>
+<li><p><strong>y_grid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – 3D numpy arrays defining the spatial grid.</p></li>
+<li><p><strong>z_grid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – 3D numpy arrays defining the spatial grid.</p></li>
+<li><p><strong>t_slices</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></span>) – List of time values for which to export data.</p></li>
+<li><p><strong>filename</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Output file prefix for the VTS files.</p></li>
+<li><p><strong>p_ref_idx</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></span>) – Index [ix, iy, iz] for pressure reference point (default [0,0,0]).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-DaFlowPINN.post.plot">
+<span id="daflowpinn-post-plot-module"></span><h2>DaFlowPINN.post.plot module<a class="headerlink" href="#module-DaFlowPINN.post.plot" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="DaFlowPINN.post.plot.plotField">
+<span class="sig-prename descclassname"><span class="pre">DaFlowPINN.post.plot.</span></span><span class="sig-name descname"><span class="pre">plotField</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suptitle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim1_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'x'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim2_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'y'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centered</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#DaFlowPINN.post.plot.plotField" title="Link to this definition">¶</a></dt>
+<dd><p>Plots a 2D field with optional data points overlay and colorbar.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>np.ndarray</em>) – 2D array of x-coordinates (meshgrid).</p></li>
+<li><p><strong>y</strong> (<em>np.ndarray</em>) – 2D array of y-coordinates (meshgrid).</p></li>
+<li><p><strong>field</strong> (<em>np.ndarray</em>) – 2D array of field values to plot.</p></li>
+<li><p><strong>x_point</strong> (<em>np.ndarray</em>) – 1D array of x-coordinates for data points (optional).</p></li>
+<li><p><strong>y_point</strong> (<em>np.ndarray</em>) – 1D array of y-coordinates for data points (optional).</p></li>
+<li><p><strong>data_point</strong> (<em>np.ndarray</em>) – 1D array of data values for scatter points (optional).</p></li>
+<li><p><strong>label</strong> (<em>str</em>) – Label for the colorbar.</p></li>
+<li><p><strong>suptitle</strong> (<em>str</em>) – Figure title.</p></li>
+<li><p><strong>filename</strong> (<em>str</em>) – Path to save the figure.</p></li>
+<li><p><strong>dim1_name</strong> (<em>str</em>) – Name for x-axis (default ‘x’).</p></li>
+<li><p><strong>dim2_name</strong> (<em>str</em>) – Name for y-axis (default ‘y’).</p></li>
+<li><p><strong>centered</strong> (<em>bool</em>) – Whether to center the color normalization at zero.</p></li>
+<li><p><strong>vmin</strong> (<em>float</em>) – Minimum value for color normalization (optional).</p></li>
+<li><p><strong>vmax</strong> (<em>float</em>) – Maximum value for color normalization (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The matplotlib figure object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>plt.Figure</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="DaFlowPINN.post.plot.plotField2">
+<span class="sig-prename descclassname"><span class="pre">DaFlowPINN.post.plot.</span></span><span class="sig-name descname"><span class="pre">plotField2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_point1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_point1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_point1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centered1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmin1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmax1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_point2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_point2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_point2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centered2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmin2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmax2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suptitle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim1_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'x'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim2_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#DaFlowPINN.post.plot.plotField2" title="Link to this definition">¶</a></dt>
+<dd><p>Plots two 2D scalar fields side by side with optional overlaid scatter data points, colorbars, and custom normalization.
+:type x1: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>
+:param x1: X-coordinates for the first field (2D meshgrid).
+:type x1: np.ndarray
+:type y1: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>
+:param y1: Y-coordinates for the first field (2D meshgrid).
+:type y1: np.ndarray
+:type field1: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>
+:param field1: Scalar field values for the first plot.
+:type field1: np.ndarray
+:type x_point1: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>
+:param x_point1: X-coordinates for scatter points on the first plot.
+:type x_point1: np.ndarray
+:type y_point1: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>
+:param y_point1: Y-coordinates for scatter points on the first plot.
+:type y_point1: np.ndarray
+:type data_point1: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>
+:param data_point1: Data values for scatter points on the first plot.
+:type data_point1: np.ndarray
+:type label1: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>
+:param label1: Colorbar label for the first plot.
+:type label1: str
+:type centered1: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>
+:param centered1: Whether to use a centered normalization (centered at zero) for the first plot.
+:type centered1: bool
+:type vmin1: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>
+:param vmin1: Minimum value for color normalization of the first plot. If None, uses data minimum.
+:type vmin1: float
+:type vmax1: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>
+:param vmax1: Maximum value for color normalization of the first plot. If None, uses data maximum.
+:type vmax1: float
+:type x2: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>
+:param x2: X-coordinates for the second field (2D meshgrid).
+:type x2: np.ndarray
+:type y2: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>
+:param y2: Y-coordinates for the second field (2D meshgrid).
+:type y2: np.ndarray
+:type field2: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>
+:param field2: Scalar field values for the second plot.
+:type field2: np.ndarray
+:type x_point2: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>
+:param x_point2: X-coordinates for scatter points on the second plot.
+:type x_point2: np.ndarray
+:type y_point2: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>
+:param y_point2: Y-coordinates for scatter points on the second plot.
+:type y_point2: np.ndarray
+:type data_point2: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>
+:param data_point2: Data values for scatter points on the second plot.
+:type data_point2: np.ndarray
+:type label2: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>
+:param label2: Colorbar label for the second plot.
+:type label2: str
+:type centered2: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>
+:param centered2: Whether to use a centered normalization (centered at zero) for the second plot.
+:type centered2: bool
+:type vmin2: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>
+:param vmin2: Minimum value for color normalization of the second plot. If None, uses data minimum.
+:type vmin2: float
+:type vmax2: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>
+:param vmax2: Maximum value for color normalization of the second plot. If None, uses data maximum.
+:type vmax2: float
+:type suptitle: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>
+:param suptitle: Supertitle for the entire figure.
+:type suptitle: str
+:type filename: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>
+:param filename: Path to save the resulting figure.
+:type filename: str
+:type dim1_name: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>
+:param dim1_name: Name for the x-axis dimension (default is ‘x’).
+:type dim1_name: str, optional
+:type dim2_name: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>
+:param dim2_name: Name for the y-axis dimension (default is ‘y’).
+:type dim2_name: str, optional</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The matplotlib Figure object containing the plots.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>plt.Figure</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Both fields are plotted using <cite>contourf</cite> with the ‘jet’ colormap.</p></li>
+<li><p>If <cite>data_point1</cite> or <cite>data_point2</cite> is not None, scatter points are overlaid on the respective plots.</p></li>
+<li><p>Colorbars are added for both plots, and normalization can be centered or linear.</p></li>
+<li><p>The figure is saved to the specified filename and then closed.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="DaFlowPINN.post.plot.plotPINN_2D">
+<span class="sig-prename descclassname"><span class="pre">DaFlowPINN.post.plot.</span></span><span class="sig-name descname"><span class="pre">plotPINN_2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">1]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim3_slice</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_slice</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">component1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim3_tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centered1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmin1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmax1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">component2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centered2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmin2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmax2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-0.5,</span> <span class="pre">-1.5]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ub</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[7.5,</span> <span class="pre">1.5]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[640,</span> <span class="pre">240]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#DaFlowPINN.post.plot.plotPINN_2D" title="Link to this definition">¶</a></dt>
+<dd><p>Plots the 2D field(s) predicted by a PINN model along with the true data if available.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predict</strong> (<em>callable</em>) – The PINN model prediction function. Should accept a torch tensor of shape (N, 4) and return a tensor of predictions.</p></li>
+<li><p><strong>plot_dims</strong> (<em>list</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – The two spatial dimensions to plot (indices 0, 1, or 2). Default is [0, 1].</p></li>
+<li><p><strong>dim3_slice</strong> (<em>float</em><em>, </em><em>optional</em>) – The value at which to slice the third spatial dimension. Default is 0.</p></li>
+<li><p><strong>t_slice</strong> (<em>float</em><em>, </em><em>optional</em>) – The time slice value. Default is 0.</p></li>
+<li><p><strong>component1</strong> (<em>int</em><em>, </em><em>optional</em>) – The first field/component to plot (see below for options). Default is 0.</p></li>
+<li><p><strong>data1</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – The true data array, shape (N, &gt;=8). Default is None.</p></li>
+<li><p><strong>dim3_tolerance</strong> (<em>float</em><em>, </em><em>optional</em>) – Tolerance for selecting the third dimension slice from data1. Default is 0.05.</p></li>
+<li><p><strong>centered1</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to center the color normalization at zero for the first field. Default is False.</p></li>
+<li><p><strong>vmin1</strong> (<em>float</em><em>, </em><em>optional</em>) – Minimum value for color normalization of the first field. Default is None.</p></li>
+<li><p><strong>vmax1</strong> (<em>float</em><em>, </em><em>optional</em>) – Maximum value for color normalization of the first field. Default is None.</p></li>
+<li><p><strong>component2</strong> (<em>int</em><em>, </em><em>optional</em>) – The second field/component to plot (optional). Default is None.</p></li>
+<li><p><strong>centered2</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to center the color normalization at zero for the second field. Default is False.</p></li>
+<li><p><strong>vmin2</strong> (<em>float</em><em>, </em><em>optional</em>) – Minimum value for color normalization of the second field. Default is None.</p></li>
+<li><p><strong>vmax2</strong> (<em>float</em><em>, </em><em>optional</em>) – Maximum value for color normalization of the second field. Default is None.</p></li>
+<li><p><strong>lb</strong> (<em>list</em><em>[</em><em>float</em><em>]</em><em>, </em><em>optional</em>) – Lower bounds for the plot dimensions. Default is [-0.5, -1.5].</p></li>
+<li><p><strong>ub</strong> (<em>list</em><em>[</em><em>float</em><em>]</em><em>, </em><em>optional</em>) – Upper bounds for the plot dimensions. Default is [7.5, 1.5].</p></li>
+<li><p><strong>resolution</strong> (<em>list</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Resolution of the plot grid [nx, ny]. Default is [640, 240].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The matplotlib figure object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>plt.Figure</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Components:</dt><dd><p>0: Magnitude of velocity
+1: u component of velocity
+2: v component of velocity
+3: w component of velocity
+4: Pressure (p)
+5: du1/dx
+6: du1/dy
+7: du2/dx
+8: du2/dy
+9: Vorticity
+10: Q-criterion (not implemented)</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>If component2 is provided, both fields are plotted in a single figure.</p></li>
+<li><p>If data1 is provided and component1 &lt; 4, true data points are overlaid.</p></li>
+</ul>
+</dd></dl>
+
+</section>
+<section id="module-DaFlowPINN.post">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-DaFlowPINN.post" title="Link to this heading">¶</a></h2>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="DaFlowPINN.training.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">DaFlowPINN.training package</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="DaFlowPINN.model.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">DaFlowPINN.model package</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2025, Jonas Pelz
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">DaFlowPINN.post package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-DaFlowPINN.post.evaluation">DaFlowPINN.post.evaluation module</a><ul>
+<li><a class="reference internal" href="#DaFlowPINN.post.evaluation.abs_mae"><code class="docutils literal notranslate"><span class="pre">abs_mae()</span></code></a></li>
+<li><a class="reference internal" href="#DaFlowPINN.post.evaluation.abs_rmse"><code class="docutils literal notranslate"><span class="pre">abs_rmse()</span></code></a></li>
+<li><a class="reference internal" href="#DaFlowPINN.post.evaluation.detailed_data_err"><code class="docutils literal notranslate"><span class="pre">detailed_data_err()</span></code></a></li>
+<li><a class="reference internal" href="#DaFlowPINN.post.evaluation.evaluatePINN"><code class="docutils literal notranslate"><span class="pre">evaluatePINN()</span></code></a></li>
+<li><a class="reference internal" href="#DaFlowPINN.post.evaluation.load_data"><code class="docutils literal notranslate"><span class="pre">load_data()</span></code></a></li>
+<li><a class="reference internal" href="#DaFlowPINN.post.evaluation.plotTruthXY"><code class="docutils literal notranslate"><span class="pre">plotTruthXY()</span></code></a></li>
+<li><a class="reference internal" href="#DaFlowPINN.post.evaluation.rel_mae"><code class="docutils literal notranslate"><span class="pre">rel_mae()</span></code></a></li>
+<li><a class="reference internal" href="#DaFlowPINN.post.evaluation.rel_rmse"><code class="docutils literal notranslate"><span class="pre">rel_rmse()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-DaFlowPINN.post.export">DaFlowPINN.post.export module</a><ul>
+<li><a class="reference internal" href="#DaFlowPINN.post.export.export_h5"><code class="docutils literal notranslate"><span class="pre">export_h5()</span></code></a></li>
+<li><a class="reference internal" href="#DaFlowPINN.post.export.export_vti"><code class="docutils literal notranslate"><span class="pre">export_vti()</span></code></a></li>
+<li><a class="reference internal" href="#DaFlowPINN.post.export.export_vts"><code class="docutils literal notranslate"><span class="pre">export_vts()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-DaFlowPINN.post.plot">DaFlowPINN.post.plot module</a><ul>
+<li><a class="reference internal" href="#DaFlowPINN.post.plot.plotField"><code class="docutils literal notranslate"><span class="pre">plotField()</span></code></a></li>
+<li><a class="reference internal" href="#DaFlowPINN.post.plot.plotField2"><code class="docutils literal notranslate"><span class="pre">plotField2()</span></code></a></li>
+<li><a class="reference internal" href="#DaFlowPINN.post.plot.plotPINN_2D"><code class="docutils literal notranslate"><span class="pre">plotPINN_2D()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-DaFlowPINN.post">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    </body>
+</html>

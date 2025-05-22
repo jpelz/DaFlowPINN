@@ -5,6 +5,8 @@ from functools import reduce
 from copy import deepcopy
 from torch.optim import Optimizer
 
+# Originally from https://github.com/hjmshi/PyTorch-LBFGS (© 2018 Hao-Jun Michael Shi, MIT License)
+
 
 def is_legal(v):
     """

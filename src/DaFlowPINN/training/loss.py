@@ -1,11 +1,51 @@
 import torch
-from typing import List
+from typing import List, Union
 
-def mse_loss(model, X, Y_true, *args, **kwargs):
+def mse_loss(
+  model: callable, 
+  X: torch.Tensor, 
+  Y_true: torch.Tensor) -> torch.Tensor:
+    """
+    Computes the mean squared error (MSE) loss between the true values and the model predictions.
+
+    Args:
+      model (callable): The model to generate predictions. Should accept X as input and return a tensor.
+      X (torch.Tensor): Input tensor to the model.
+      Y_true (torch.Tensor): Ground truth tensor with target values.
+      *args: Additional positional arguments (unused).
+      **kwargs: Additional keyword arguments (unused).
+
+    Returns:
+      torch.Tensor: The mean squared error loss as a scalar tensor.
+    """
     Y_pred=model(X)
     return torch.nanmean((Y_true-Y_pred[:,0:3])**2)
 
-def scaled_mse_loss(model, X, Y_true, weight):
+def scaled_mse_loss(
+  model: torch.nn.Module,
+  X: torch.Tensor,
+  Y_true: torch.Tensor,
+  weight: Union[torch.Tensor, List[float]]
+) -> torch.Tensor:
+    """
+    Computes a scaled mean squared error (MSE) loss between the model predictions and true values,
+    applying a per-output scaling factor.
+
+    Args:
+      model (torch.nn.Module): The neural network model to generate predictions.
+      X (torch.Tensor): Input tensor to the model.
+      Y_true (torch.Tensor): Ground truth tensor with shape (batch_size, 3).
+      weight (torch.Tensor or array-like): Scaling weights for each output dimension (length 3).
+
+    Returns:
+      torch.Tensor: The computed scaled MSE loss as a scalar tensor.
+
+    Notes:
+      - The weights are normalized such that their sum equals 3.
+      - The loss is computed as the mean of the sum of squared errors for each output,
+        each scaled by its corresponding normalized weight.
+      - Handles both tensor and array-like weights, moving them to the correct device.
+    """
     Y_pred=model(X)
     if not isinstance(weight, torch.Tensor):
       weight = torch.tensor(weight, device=Y_true.device).float()
@@ -14,13 +54,46 @@ def scaled_mse_loss(model, X, Y_true, weight):
     weight = weight/(weight.sum()/3)
     return torch.nanmean((weight[0]*(Y_true[:,0]-Y_pred[:,0]))**2 + (weight[1]*(Y_true[:,1]-Y_pred[:,1]))**2 + (weight[2]*(Y_true[:,2]-Y_pred[:,2]))**2)
 
-def boundary_loss(model, X):
-    Y_pred=model(X)
-    return torch.nanmean((Y_pred[:,0:3]-0)**2)
+def boundary_loss(model: callable, X: torch.Tensor) -> torch.Tensor:
+  """
+  Computes the mean squared error loss enforcing zero boundary conditions
+  on the first three outputs of the model (e.g., velocity components).
+
+  Args:
+    model (callable): The model to generate predictions. Should accept X as input and return a tensor.
+    X (torch.Tensor): Input tensor to the model.
+
+  Returns:
+    torch.Tensor: The mean squared error loss as a scalar tensor.
+  """
+  Y_pred = model(X)
+  return torch.nanmean((Y_pred[:, 0:3] - 0) ** 2)
 
 
 
-def physics_loss(model, X, Re, normalize, denormalize, return_min_max_p=False):#norm_scales: List[float] = [1, 1, 1, 1, 1, 1, 1, 1], norm_offsets = [0, 0, 0, 0, 0, 0, 0, 0], return_min_max_p=False):
+def physics_loss(
+  model: torch.nn.Module,
+  X: torch.Tensor,
+  Re: float,
+  normalize: callable,
+  denormalize: callable,
+  return_min_max_p: bool = False #,for normalied equations: norm_scales: List[float] = [1, 1, 1, 1, 1, 1, 1, 1], norm_offsets: List[float] = [0, 0, 0, 0, 0, 0, 0, 0]):
+) -> torch.Tensor:
+    """
+    Computes the physics-informed loss for the Navier-Stokes equations using a PINN model.
+    Args:
+      model (torch.nn.Module): The neural network model that predicts velocity and pressure fields.
+      X (torch.Tensor): Input tensor of shape (N, 4), where columns represent (x, y, z, t) coordinates.
+      Re (float): Reynolds number for the dimensionless Navier-Stokes equations.
+      normalize (callable): Function to normalize input data.
+      denormalize (callable): Function to denormalize model outputs.
+      return_min_max_p (bool, optional): If True, also returns the minimum and maximum predicted pressure values. Defaults to False.
+    Returns:
+      torch.Tensor: The computed physics-informed loss (scalar).
+      If return_min_max_p is True, returns a tuple:
+        (loss, max_pressure, min_pressure)
+        where max_pressure and min_pressure are detached torch.Tensors.
+    """
     # With Navier-Stokes equation
 
     X.requires_grad = True
@@ -37,15 +110,11 @@ def physics_loss(model, X, Re, normalize, denormalize, return_min_max_p=False):#
         X_norm = X
 
     result = model(X_norm)
-    #print(f'p*_max: {max(result[:,3])}')
-    #print(f'p*_min: {min(result[:,3])}')
-
 
     if denormalize is not None and normalize is not None:
         result = denormalize(y=result)
 
     u, v, w, p = result[:, 0], result[:, 1], result[:, 2], result[:, 3]
-
 
     u_X=compute_gradients(u, X_denorm)
     v_X=compute_gradients(v, X_denorm)
@@ -83,9 +152,8 @@ def physics_loss(model, X, Re, normalize, denormalize, return_min_max_p=False):#
     f_y = v_t + (u * v_x + v * v_y + w * v_z) + p_y - 1/Re * (v_xx + v_yy + v_zz)
     f_z = w_t + (u * w_x + v * w_y + w * w_z) + p_z - 1/Re * (w_xx + w_yy + w_zz)
 
-    #print(torch.mean(f_mass**2), torch.mean(f_x**2), torch.mean(f_y**2), torch.mean(f_z**2))
-    #print(torch.mean(u_t), torch.mean(v_t), torch.mean(w_t))
-    
+
+    # Dimensional Equations:
     # rho=1000
     # nu=1E-6
 
@@ -94,31 +162,23 @@ def physics_loss(model, X, Re, normalize, denormalize, return_min_max_p=False):#
     # f_z = w_t + (u * w_x + v * w_y + w * w_z) + p_z/rho - nu * (w_xx + w_yy + w_zz)
 
 
-
-    #w_x = f_mass / f_x
-    #w_y = f_mass / f_y
-    #w_z = f_mass / f_z
-
-    #f_x = f_x * w_x
-    #f_y = f_y * w_y
-    #f_z = f_z * w_z
-
     # Normalized Equations:
     # https://arxiv.org/html/2403.19923v2
 
     # sx, sy, sz, st, su, sv, sw, sp = norm_scales
 
-
-
     # U = su*u + norm_offsets[4]
     # V = sv*v + norm_offsets[5]
     # W = sw*w + norm_offsets[6]
+
+    # # Dimensionless:
 
     # f_mass = su/sx*u_x + sv/sy*v_y + sw/sz*w_z
     # # f_x = su/st*u_t + su*(U/sx*u_x + V/sy*u_y + W/sz*u_z) + sp/sx*p_x - 1/Re * su*(u_xx/sx**2 + u_yy/sy**2 + u_zz/sz**2)
     # # f_y = sv/st*v_t + sv*(U/sx*v_x + V/sy*v_y + W/sz*v_z) + sp/sy*p_y - 1/Re * sv*(v_xx/sx**2 + v_yy/sy**2 + v_zz/sz**2)
     # # f_z = sw/st*w_t + sw*(U/sx*w_x + V/sy*w_y + W/sz*w_z) + sp/sz*p_z - 1/Re * sw*(w_xx/sx**2 + w_yy/sy**2 + w_zz/sz**2)
 
+    # # Dimensional:
     # rho=1000
     # nu=1E-6
 
@@ -127,7 +187,6 @@ def physics_loss(model, X, Re, normalize, denormalize, return_min_max_p=False):#
     # f_z = sw/st*w_t + sw*(U/sx*w_x + V/sy*w_y + W/sz*w_z) + sp/sz*p_z/rho - nu * sw*(w_xx/sx**2 + w_yy/sy**2 + w_zz/sz**2)
 
     loss = torch.mean(f_mass**2) + torch.mean(f_x**2) + torch.mean(f_y**2) + torch.mean(f_z**2)
-    #loss = loss + loss * (min(p)-0)**2
     
     if not return_min_max_p:
       return loss
@@ -135,7 +194,8 @@ def physics_loss(model, X, Re, normalize, denormalize, return_min_max_p=False):#
       return loss, max(result[:,3]).detach(), min(result[:,3]).detach()
 
 def numerical_physics_loss(model, X, Re, dx, dy, dz, dt, denormalize: callable = None):
-    
+    # n-PINNs as in Chiu et al. 2022 - https://doi.org/10.1016/j.cma.2022.114909
+    # Coupling with AD is missing yet
 
     pred = model(X)
     

@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import qmc
 
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Callable
 
 import os
 import sys
@@ -30,37 +30,70 @@ from ..post.plot import plotPINN_2D
 from ..post.evaluation import detailed_data_err
 
 class Network(nn.Module):
-  def __init__(self,
-               model: nn.Module,
-               N_LAYERS: int = 5,
-               N_NEURONS: int = 512,
-               hardBC_sdf: callable = None,
-               fourier_feature: bool = False,
-               **kwargs):
+  """
+  Wrapper network for PINN models supporting optional Fourier features and hard boundary conditions.
+  """
+  def __init__(
+    self,
+    model: nn.Module,
+    N_LAYERS: int = 5,
+    N_NEURONS: int = 512,
+    hardBC_sdf: callable = None,
+    fourier_feature: bool = False,
+    **kwargs
+  ):
+    """
+    Initializes the core model for DaFlowPINN.
+    Args:
+      model (nn.Module): The base neural network architecture to be used.
+      N_LAYERS (int, optional): Number of layers in the neural network. Default is 5.
+      N_NEURONS (int, optional): Number of neurons per layer. Default is 512.
+      hardBC_sdf (callable, optional): Signed or approximate distance function (SDF/ADF) for enforcing hard boundary conditions. If provided, hard boundary conditions are applied.
+      fourier_feature (bool, optional): If True, applies random Fourier feature mapping to the input. Default is False.
+      **kwargs: Additional keyword arguments for feature mapping and scaling, used only if `fourier_feature` is True:
+        - mapping_size (int, optional): Number of random Fourier features (default: 512).
+        - scale_x (float, optional): Scaling factor for the x input dimension (default: 1).
+        - scale_y (float, optional): Scaling factor for the y input dimension (default: 1).
+        - scale_z (float, optional): Scaling factor for the z input dimension (default: 1).
+        - scale_t (float, optional): Scaling factor for the t input dimension (default: 1).
+    Notes:
+      - If `fourier_feature` is True, the model input is mapped to a higher-dimensional space using random Fourier features, and the above scaling factors and mapping size can be set via kwargs.
+      - If `hardBC_sdf` is provided, hard boundary conditions are enforced using the given SDF/ADF function.
 
+    """
     super().__init__()
     
     if fourier_feature:
-      self.fourier_feature = True
-      mapping_size = kwargs.get('mapping_size', 512)
-      self.mapping_size = mapping_size if mapping_size is not None else 512
-      scale_x = kwargs.get('scale_x', 1)
-      scale_y = kwargs.get('scale_y', 1)
-      scale_z = kwargs.get('scale_z', 1)
-      scale_t = kwargs.get('scale_t', 1)
-      self.network = model(2*self.mapping_size, 4, N_NEURONS, N_LAYERS)
-      self.rff = RFF(4, n_freqs=self.mapping_size, scales=[scale_x, scale_y, scale_z, scale_t])
+      self.fourier_feature: bool = True
+      mapping_size: int = kwargs.get('mapping_size', 512)
+      self.mapping_size: int = mapping_size if mapping_size is not None else 512
+      scale_x: float = kwargs.get('scale_x', 1)
+      scale_y: float = kwargs.get('scale_y', 1)
+      scale_z: float = kwargs.get('scale_z', 1)
+      scale_t: float = kwargs.get('scale_t', 1)
+      # Input dim: 4, output dim: 2*mapping_size after RFF
+      self.network: nn.Module = model(2 * self.mapping_size, 4, N_NEURONS, N_LAYERS)
+      self.rff: RFF = RFF(n_freqs=self.mapping_size, scales=[scale_x, scale_y, scale_z, scale_t])
     else:
-      self.fourier_feature = False
-      self.network = model(4, 4, N_NEURONS, N_LAYERS)
+      self.fourier_feature: bool = False
+      self.network: nn.Module = model(4, 4, N_NEURONS, N_LAYERS)
 
     if hardBC_sdf is not None:
-      self.hardBC = True
-      self.hbc = HardBC(hardBC_sdf)
+      self.hardBC: bool = True
+      self.hbc: HardBC = HardBC(hardBC_sdf)
     else:
-      self.hardBC = False
+      self.hardBC: bool = False
 
-  def forward(self,x):
+  def forward(self, x: torch.Tensor) -> torch.Tensor:
+    """
+    Forward pass through the network, applying optional Fourier features and hard boundary conditions.
+
+    Args:
+      x (torch.Tensor): Input tensor of shape (batch_size, 4).
+
+    Returns:
+      torch.Tensor: Output tensor of shape (batch_size, 4).
+    """
     x = x.float()
     if self.hardBC:
       x0 = x.detach()
@@ -68,41 +101,54 @@ class Network(nn.Module):
       x = self.rff(x)
     x = self.network(x)
     if self.hardBC:
-      x = self.hbc(x,x0)
-
+      x = self.hbc(x, x0)
     return x
 
 #MARK: --- Begin of PINN ---
+# 'MARK' comments are used for marking sections in VSCode
+
 class PINN_3D(nn.Module):
   """
-  Physics-Informed Neural Network (PINN) for 3D problems.
-  This class implements a PINN for solving 3D partial differential equations (PDEs) using neural networks. 
-  It supports boundary conditions, collocation points for physics-based losses, and data points for supervised learning.
+  PINN_3D: Physics-Informed Neural Network for 3D PDEs.
+
+  This class implements a PINN for solving 3D partial differential equations (PDEs) using neural networks.
+  It supports:
+    - Data-driven supervised learning (with data points)
+    - Physics-based loss via collocation points (enforcing PDEs)
+    - Boundary condition enforcement (soft or hard)
+    - Optional Fourier feature mapping and hard boundary conditions
+    - Automatic mixed precision (AMP) training
+    - Collocation point growth and dynamic point updates
+    - Learning rate scheduling and advanced optimizers (Adam, LBFGS, SOAP)
+    - Loss weighting and auto-weighting schemes
+    - Training/validation split, normalization, and non-dimensionalization
+    - Plotting and evaluation utilities
+
   Attributes:
-    model (nn.Module): The neural network model.
-    NAME (str): The name of the model.
+    model (nn.Module): The wrapped neural network (with optional Fourier features and hard BC).
+    NAME (str): Model identifier.
     Re (float): Reynolds number for non-dimensionalization.
     N_LAYERS (int): Number of layers in the neural network.
-    N_NEURONS (int): Number of neurons per layer in the neural network.
-    amp_enabled (bool): Flag to enable automatic mixed precision (AMP) training.
-    device (torch.device): The device to run the model on (CPU or GPU).
-    N_COLLOCATION (int): Number of collocation points.
+    N_NEURONS (int): Number of neurons per layer.
+    amp_enabled (bool): Enable AMP training.
+    device (torch.device): Device for computation.
+    N_COLLOCATION (int): Number of collocation (physics) points.
     N_BC (int): Number of boundary condition points.
     N_DATA (int): Number of data points.
-    point_update_freq (int): Frequency of updating points.
-    collocation_growth (bool): Flag to enable collocation growth.
+    point_update_freq (int): Frequency for updating points.
+    collocation_growth (bool): Enable collocation growth.
     epoch (int): Current training epoch.
-    model_cpu (nn.Module): Model for CPU inference.
-    hist_total (list): History of total losses.
-    hist_data (list): History of data losses.
-    hist_ns (list): History of Navier-Stokes losses.
-    hist_bc (list): History of boundary condition losses.
-    hist_lr (list): History of learning rates.
-    plot_setups (list): List of plot setups.
-    l_scale (float): Length scale for non-dimensionalization.
-    u_scale (float): Velocity scale for non-dimensionalization.
-    t_scale (float): Time scale for non-dimensionalization.
-    p_scale (float): Pressure scale for non-dimensionalization.
+    model_cpu (nn.Module): Model copy for CPU inference.
+    hist_total, hist_data, hist_ns, hist_bc, hist_lr (list): Loss and LR histories.
+    plot_setups (list): Plot configuration setups.
+    l_scale, u_scale, t_scale, p_scale (float): Non-dimensionalization scales.
+    norm_scales, norm_offsets (torch.Tensor): Normalization parameters.
+    lambda_data, lambda_bc, lambda_ns (float): Loss weights.
+    scheduler: Learning rate scheduler.
+    optimizer, post_optimizer: Optimizer(s).
+    autoweight (bool): Enable auto-weighting of losses.
+    grad_acc (bool): Enable gradient accumulation.
+    ... (many other training and bookkeeping attributes)
   """
   def __init__(self,
                model: nn.Module,
@@ -118,27 +164,39 @@ class PINN_3D(nn.Module):
     Initializes the PINN_3D class with the given parameters.
 
     Args:
-      model (nn.Module): The neural network model.
-      NAME (str): The name of the model.
+      model (nn.Module): The base neural network architecture to be used (e.g., FCN).
+      NAME (str): Identifier for the model instance.
       Re (float): Reynolds number for non-dimensionalization.
       N_LAYERS (int, optional): Number of layers in the neural network. Defaults to 4.
-      N_NEURONS (int, optional): Number of neurons per layer in the neural network. Defaults to 256.
-      amp_enabled (bool, optional): Flag to enable automatic mixed precision (AMP) training. Defaults to False.
+      N_NEURONS (int, optional): Number of neurons per layer in the neural network. Defaults to 512.
+      amp_enabled (bool, optional): Enable automatic mixed precision (AMP) training. Defaults to False.
+      hardBC_sdf (callable, optional): Signed or approximate distance function for hard boundary conditions. If provided, hard BCs are enforced.
+      fourier_feature (bool, optional): If True, applies random Fourier feature mapping to the input. Defaults to False.
+      **kwargs: Additional keyword arguments for feature mapping and scaling, used only if `fourier_feature` is True:
+      - mapping_size (int, optional): Number of random Fourier features (default: 512).
+      - scale_x (float, optional): Scaling factor for the x input dimension (default: 1).
+      - scale_y (float, optional): Scaling factor for the y input dimension (default: 1).
+      - scale_z (float, optional): Scaling factor for the z input dimension (default: 1).
+      - scale_t (float, optional): Scaling factor for the t input dimension (default: 1).
     """
-    torch.manual_seed(123)
+    
+
     # Set default data type to float
     torch.set_default_dtype(torch.float)
+
+    # Set random seed for reproducibility
+    torch.manual_seed(123)
     if torch.cuda.is_available():
       torch.cuda.manual_seed_all(123)
     super().__init__()
     
-
+    # Initialize the model with optional Fourier features and hard boundary conditions
     self.model = Network(model, N_LAYERS, N_NEURONS, hardBC_sdf, fourier_feature, **kwargs)
 
-
+    # Set model parameters for saving/loading
     self.fourier_feature = fourier_feature
     if self.fourier_feature:
-      self.mapping_size = kwargs.get('mapping_size', 256)
+      self.mapping_size = kwargs.get('mapping_size', 512)
     self.NAME = NAME
     self.N_LAYERS = N_LAYERS
     self.N_NEURONS = N_NEURONS
@@ -153,9 +211,8 @@ class PINN_3D(nn.Module):
     if torch.cuda.device_count() > 1:
       self.model = DataParallel(self.model)
 
+    # Move the model to the specified device
     self.model = self.model.to(self.device)
-
-
     
 
     # Initialize collocation, boundary, and data points
@@ -176,12 +233,12 @@ class PINN_3D(nn.Module):
     self.loss_ns_sum = torch.tensor(0, device=self.device)
     self.loss_total = torch.tensor(0, device=self.device)
 
+    # Initialize data, boundary, and collocation loss weights
     self.lambda_data = 1.0
     self.lambda_bc = 1.0
     self.lambda_ns = 1.0
 
     # Initialize scheduler and AMP scaler
-    
     self.scheduler = None
     self.amp_enabled = amp_enabled
     self.scaler = GradScaler('cuda' if torch.cuda.is_available() else 'cpu')
@@ -191,7 +248,7 @@ class PINN_3D(nn.Module):
     # Initialize model for CPU inference
     self.model_cpu = model
 
-    # Initialize history lists for losses and learning rates
+    # Initialize history lists for losses, learning rate, RMSEs, and loss weights
     self.hist_total = []
     self.hist_data = []
     self.hist_ns = []
@@ -213,20 +270,16 @@ class PINN_3D(nn.Module):
 
     # Initialize non-dimensionalization scales
     self.Re = Re
-    #self.model.Re = torch.nn.Parameter(torch.tensor(Re, device=self.device, dtype=torch.float))
+
     self.l_scale = 1
     self.u_scale = 1
     self.t_scale = 1
     self.p_scale = 1
 
-    self.pmin = np.inf
-    self.pmax = -np.inf
 
     # Initialize normalization scales and offsets
     self.norm_scales = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1], device=self.device)
     self.norm_offsets = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0], device=self.device)
-
-    self.p_ref = None
 
     self.autoweight = False
 
@@ -235,7 +288,6 @@ class PINN_3D(nn.Module):
     self.NaN_counter = 0
 
 #MARK: Forwarding
-
   def forward(self, x: torch.Tensor) -> torch.Tensor:
     """
     Forward pass of the PINN model.
@@ -277,8 +329,15 @@ class PINN_3D(nn.Module):
     # Redimensionalize the model output
     return self.redimension(y=self.denormalize(y=y))
   
-  def get_forward_callable(self) -> torch.Tensor:
-    
+  def get_forward_callable(self) -> Callable[[torch.Tensor], torch.Tensor]:
+    """
+    Returns a callable for CPU inference with the current model state.
+    This function creates a deep copy of the model on the CPU, sets it to eval mode,
+    and returns a function that performs a forward pass using the CPU model.
+
+    Returns:
+      Callable[[torch.Tensor], torch.Tensor]: A function that takes a torch.Tensor as input and returns the model output.
+    """
     # Load the model on the CPU
     if isinstance(self.model, DataParallel):
       self.model_cpu = copy.deepcopy(self.model.module)
@@ -309,26 +368,11 @@ class PINN_3D(nn.Module):
     self.t_min = lb[3]
     self.t_max = ub[3]
 
-  def add_p_ref_point(self, x: float, y: float, z: float, t: float, p: float = 0) -> None:
-    """
-    Adds a reference point for pressure to the PINN model.
-
-    Args:
-      x (float): x-coordinate of the reference point.
-      y (float): y-coordinate of the reference point.
-      z (float): z-coordinate of the reference point.
-      t (float): Time of the reference point.
-      p (float, optional): Pressure value at the reference point. Defaults to 0.
-    """
-    self.p_ref = torch.empty(1, 5, device=self.device)
-    self.p_ref[0] = torch.tensor([x, y, z, t, p], device=self.device).float()
-
-
 #MARK: Dimensionless
 
   def set_dimensionless(self, l_scale: float, u_scale: float, p_scale: float, t_scale: float = None) -> None:
     """
-    Sets the dimensionless scales for the PINN model. Call before set_normalization!!!
+    Sets the dimensionless scales for the PINN model.
 
     Args:
       l_scale (float): Length scale for non-dimensionalization. l* = l / l_scale
@@ -478,18 +522,22 @@ class PINN_3D(nn.Module):
 
 
 
-
-
 #MARK: - Data Handling
-  def add_data_points(self, data: np.ndarray, batch_size = None, test_size = 0.05) -> None:
+  def add_data_points(self, data: np.ndarray, batch_size = None, test_size = 0.05, train_test_file = None, n_acc: int = 1) -> None:
     """
-    Adds data points for supervised learning to the PINN model.
+    Adds data points for supervised learning to the PINN model, applies dimensionless transformation and normalization, and prepares train/test splits.
 
     Args:
-      data (np.ndarray): Array containing the data points. The array should have the following columns:
+      data (np.ndarray): Array containing the data points. The array should have at least 8 columns:
+      - Column 0: Index or identifier (optional, otherwise empty column)
       - Columns 1-4: Input features (x, y, z, t)
       - Columns 5-7: Output features (u, v, w)
+      batch_size (int, optional): Batch size for training. If None, uses all data.
+      test_size (float, optional): Fraction of data to use for testing. Default is 0.05.
+      train_test_file (str, optional): Path to a .npz file with precomputed train/test splits.
+      n_acc (int, optional): Number of batches for gradient accumulation. Default is 1.
     """
+
     if data.shape[1] < 8:
       raise ValueError("Data array must have at least 8 columns: [index, x, y, z, t, u, v, w]")
 
@@ -499,8 +547,6 @@ class PINN_3D(nn.Module):
     # Extract input (X) and output (Y) tensors from the data array
     X = torch.from_numpy(data[:, 1:5]).float()  # x, y, z, t
     Y = torch.from_numpy(data[:, 5:8]).float()  # u, v, w
-
-
 
     # Apply dimensionless transformation to the input and output tensors
     X, Y = self.dimensionless(X, Y)
@@ -525,7 +571,6 @@ class PINN_3D(nn.Module):
                                       0], device=self.device) #+ 1 * self.norm_scales   # --> for -1 to 1 normalization
 
     #Z-Score normalization:
-
     # self.norm_scales = torch.tensor([X[:, 0].std(),
     #                             X[:, 1].std(),
     #                             X[:, 2].std(),
@@ -551,7 +596,6 @@ class PINN_3D(nn.Module):
 
     
     self.loss_scales = torch.tensor([loss_scale_u, loss_scale_v, loss_scale_w])
-
 
     #print(f"Normalization scales: {self.norm_scales}")
     #print(f"New RFF Scales: {self.model.scales}")
@@ -582,12 +626,12 @@ class PINN_3D(nn.Module):
       self.X_test = X[test_idx, :].to(self.device)
       self.Y_test = Y[test_idx, :].to(self.device)
 
-      #in case of data export:
-      # np.savez("data.npz",
-      # x_train = self.redimension(self.denormalize(self.X_train)).cpu().numpy(),
-      # y_train = self.redimension(y=self.denormalize(y=self.Y_train)).cpu().numpy(),
-      # x_test = self.redimension(self.denormalize(self.X_test)).cpu().numpy(),
-      # y_test = self.redimension(y=self.denormalize(y=self.Y_test)).cpu().numpy())
+      if train_test_file is None:
+        np.savez("data.npz",
+        x_train = self.redimension(self.denormalize(self.X_train)).cpu().numpy(),
+        y_train = self.redimension(y=self.denormalize(y=self.Y_train)).cpu().numpy(),
+        x_test = self.redimension(self.denormalize(self.X_test)).cpu().numpy(),
+        y_test = self.redimension(y=self.denormalize(y=self.Y_test)).cpu().numpy())
     
     else:
       self.X_train = X.to(self.device)
@@ -597,55 +641,49 @@ class PINN_3D(nn.Module):
 
     self.N_DATA = len(self.X_train[:, 0])
 
+    if train_test_file is not None:
 
-    #in case of data import:
+      data = np.load(train_test_file)
 
-    # if self.N_DATA > 300000:
-    #   name = "200"
-    # elif self.N_DATA > 75000:
-    #   name = "050"
-    # elif self.N_DATA > 15000:
-    #   name = "010"
-    # else:
-    #   name = "001"  
+      x_train = data["x_train"]
+      y_train = data["y_train"]
+      x_test = data["x_test"]
+      y_test = data["y_test"]
 
-    # data = np.load(f"/scratch/jpelz/ma-pinns/DA_CASE01_t_23_25_p{name}.npz")
+      self.X_train = torch.tensor(x_train, device = self.device)
+      self.Y_train = torch.tensor(y_train, device = self.device)
+      self.X_test = torch.tensor(x_test, device = self.device)
+      self.Y_test = torch.tensor(y_test, device = self.device)
 
-    # x_train = data["x_train"]
-    # y_train = data["y_train"]
-    # x_test = data["x_test"]
-    # y_test = data["y_test"]
+      self.X_train, self.Y_train = self.dimensionless(self.X_train, self.Y_train)
+      self.X_test, self.Y_test = self.dimensionless(self.X_test, self.Y_test)
 
-    # self.X_train = torch.tensor(x_train, device = self.device)
-    # self.Y_train = torch.tensor(y_train, device = self.device)
-    # self.X_test = torch.tensor(x_test, device = self.device)
-    # self.Y_test = torch.tensor(y_test, device = self.device)
-
-    # self.X_train, self.Y_train = self.dimensionless(self.X_train, self.Y_train)
-    # self.X_test, self.Y_test = self.dimensionless(self.X_test, self.Y_test)
-
-    # self.X_train, self.Y_train = self.normalize(self.X_train, self.Y_train)
-    # self.X_test, self.Y_test = self.normalize(self.X_test, self.Y_test)
+      self.X_train, self.Y_train = self.normalize(self.X_train, self.Y_train)
+      self.X_test, self.Y_test = self.normalize(self.X_test, self.Y_test)
 
 
 
     self.N_DATA = len(self.X_train[:, 0])
     
     self.data_batch_size = batch_size if batch_size is not None else self.N_DATA
+    self.n_acc_data = n_acc
 
   
     self.dataset = CustomDataset(self.X_train, self.Y_train, batch_size=self.data_batch_size, shuffle=True)
     self.dataloader = DataLoader(self.dataset, batch_size=1)
 
 #MARK: Boundary Conditions
-  def add_boundary_condition(self, surface_sampler: callable, N_BC_POINTS: int, weight: float, values = [0, 0, 0], batch_size = None) -> None:
+  def add_boundary_condition(self, surface_sampler: callable, N_BC_POINTS: int, weight: float, values = [0, 0, 0], batch_size = None, n_acc = 1) -> None:
     """
-    Adds boundary condition points to the PINN model.
+    Adds boundary condition points for supervised boundary loss to the PINN model.
 
     Args:
-      surface_sampler (callable): Function to sample points on the boundary surface.
-      N_BC_POINTS (int): Number of boundary condition points.
-      weight (float): Weight for the boundary condition loss.
+      surface_sampler (callable): Function that samples points on the boundary surface and returns their coordinates as a numpy array.
+      N_BC_POINTS (int): Number of boundary condition points to sample.
+      weight (float): Weight for the boundary condition loss term.
+      values (list, optional): Target values for the boundary condition (default: [0, 0, 0]).
+      batch_size (int, optional): Batch size for boundary condition points (default: all points).
+      n_acc (int, optional): Number of accumulations for boundary condition batches (default: 1).
     """
 
     if self.N_DATA == 0:
@@ -654,7 +692,7 @@ class PINN_3D(nn.Module):
     self.surface_sampler = surface_sampler
     boundary = self.surface_sampler(N_BC_POINTS)
 
-    # Convert boundary points to tensor and enable gradient computation
+    # Convert boundary points to tensor
     X_boundary = torch.from_numpy(boundary).float()
     Y_boundary = torch.ones_like(X_boundary[:,:3]) * torch.tensor(values).float()
 
@@ -666,28 +704,32 @@ class PINN_3D(nn.Module):
     self.lambda_bc = weight
     self.bc_values = values
     self.bc_batch_size = batch_size if batch_size is not None else self.N_BC
+    self.n_acc_bc = n_acc
 
     self.bc_dataset = CustomDataset(X_boundary, Y_boundary, batch_size=self.bc_batch_size, shuffle=True)
     self.bc_dataloader = DataLoader(self.bc_dataset, batch_size=1)
 
 #MARK: Physics Points
-  def add_physics_points(self, N_COLLOCATION: int, batch_size: int, geometry: callable = None, weight: float = 1.0, keep_percentage: float = 20, numerical = False, p_scale = 1, p_offset = 0, n_acc = 1) -> None:
+  def add_physics_points(self, N_COLLOCATION: int, batch_size: int, geometry: callable = None, weight: float = 1.0, keep_percentage: float = 20, numerical = False, p_scale = 1, n_acc = 1) -> None:
     """
-    Adds physics collocation points to the PINN model. Overwrites existing points.
+    Adds physics collocation points (interior points) for enforcing the PDE residual in the PINN model.
 
     Args:
-      N_COLLOCATION (int): Number of collocation points.
-      N_BATCHES (int): Number of batches for the DataLoader.
-      geometry (callable, optional): Function to define the geometry of the domain. Should return True if a point is inside the domain and false a a point is outside of the domain. Defaults to None.
-      weight (float, optional): Weight for the physics loss. Defaults to 1.0.
-      keep_percentage (float, optional): Percentage of the collocation points to keep if points already exist. Defaults to 20.
+      N_COLLOCATION (int): Number of collocation (physics) points to sample.
+      batch_size (int): Batch size for the physics DataLoader.
+      geometry (callable, optional): Function that returns a boolean mask for points inside the domain geometry. Defaults to None.
+      weight (float, optional): Weight for the physics (Navier-Stokes) loss term. Defaults to 1.0.
+      keep_percentage (float, optional): Percentage of existing collocation points to retain when updating points. Defaults to 20.
+      numerical (bool, optional): If True, use numerical physics loss. Defaults to False.
+      p_scale (float, optional): Scaling factor for pressure normalization. Defaults to 1.
+      n_acc (int, optional): Number of accumulations for physics batches. Defaults to 1.
     """
     if self.N_DATA == 0:
       raise RuntimeError("Data points must be added before physics points.")
 
     current_nr_points = self.N_COLLOCATION
-    self.norm_scales[7] = p_scale#/2
-    self.norm_offsets[7] = 0 #p_offset + 1*p_scale
+    self.norm_scales[7] = p_scale
+    self.norm_offsets[7] = 0
 
     if N_COLLOCATION > 0:
       # Sample interior points within the domain
@@ -701,7 +743,7 @@ class PINN_3D(nn.Module):
 
         keep_idx = np.random.choice(current_nr_points, nr_keep, replace=False)
         keep_points = self.X_physics[keep_idx]
-        X_physics = torch.cat((keep_points, new_points), dim=0)
+        self.X_physics = torch.cat((keep_points, new_points), dim=0)
       
       # Create a dataset and dataloader for the collocation points
       self.physics_dataset = CustomDataset(self.X_physics, batch_size=batch_size, shuffle = True)
@@ -715,10 +757,12 @@ class PINN_3D(nn.Module):
     self.numerical = numerical
     self.n_acc_physics = n_acc
 
-  def update_points(self, keep_percentage) -> None:
+  def update_points(self, keep_percentage: float) -> None:
     """
     Updates the collocation and boundary points for the PINN model.
-    This function is called periodically during training to refresh the collocation and boundary points.
+
+    Args:
+      keep_percentage (float): Percentage of existing collocation points to retain when updating points.
     """
     # Update the number of collocation points if collocation growth is enabled
     if self.collocation_growth:
@@ -736,18 +780,18 @@ class PINN_3D(nn.Module):
 
   def add_collocation_growth(self, n_init: int, n_max: int, epoch_start: int, epoch_end: int, increase_scheme: str = 'linear', **kwargs) -> None:
     """
-    Enables collocation growth during training.
+    Enables dynamic collocation point growth during training.
 
     Args:
-      n_init (int): Initial number of collocation points.
-      n_max (int): Maximum number of collocation points.
-      epoch_start (int): Epoch to start increasing collocation points.
-      epoch_end (int): Epoch to stop increasing collocation points.
-      increase_scheme (str, optional): Scheme to increase collocation points. Defaults to 'linear'.
-        - 'linear': Linear increase.
-        - 'exponential': Exponential increase. Requires 'epsilon' in kwargs (difference ratio between given and actual end-number of points.).
-        - 'logarithmic': Logarithmic increase.
-      **kwargs: Additional arguments for specific increase schemes.
+      n_init (int): Initial number of collocation points at the start of growth.
+      n_max (int): Maximum number of collocation points at the end of growth.
+      epoch_start (int): Epoch at which to begin increasing the number of collocation points.
+      epoch_end (int): Epoch at which to reach the maximum number of collocation points.
+      increase_scheme (str, optional): Strategy for increasing collocation points. Defaults to 'linear'.
+        - 'linear': Linearly increases the number of points from n_init to n_max between epoch_start and epoch_end.
+        - 'exponential': Exponentially increases the number of points; requires 'epsilon' in kwargs (controls the end ratio).
+        - 'logarithmic': Logarithmically increases the number of points.
+      **kwargs: Additional keyword arguments for specific increase schemes (e.g., 'epsilon' for exponential).
     """
     self.collocation_growth = True
 
@@ -783,7 +827,7 @@ class PINN_3D(nn.Module):
     self.update_collocation_nr = update_collocation_nr
      
 #MARK: Optimizer & Scheduler  
-  def add_optimizer(self, optim: str = "adam", lr: float = 1e-3, lbfgs_type = "standard") -> None:
+  def add_optimizer(self, optim: str = "adam", lr: float = 1e-3, lbfgs_type: str = "standard") -> None:
     """
     Adds an optimizer to the PINN model.
 
@@ -795,8 +839,8 @@ class PINN_3D(nn.Module):
       lr (float, optional): Learning rate for the optimizer. Defaults to 1e-3.
       lbfgs_type (str, optional): Type of L-BFGS optimizer (applied only when LBFGS is activated). Defaults to "standard".
       - "standard": Standard L-BFGS optimizer implemented in PyTorch
-      - "full_overlap": Full overlap L-BFGS optimizer
-      - "multibatch": Multibatch L-BFGS optimizer with partial overlap
+      - "full_overlap": Full overlap L-BFGS optimizer (see https://github.com/hjmshi/PyTorch-LBFGS)
+      - "multibatch": Multibatch L-BFGS optimizer with partial overlap (see https://github.com/hjmshi/PyTorch-LBFGS)
     Raises:
       ValueError: If an invalid optimizer is specified.
     """
@@ -804,6 +848,8 @@ class PINN_3D(nn.Module):
     self.optim = optim
     if optim == "adam":
       self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr) #betas=(.95, .95)
+    elif optim == "adam2":
+      self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr, betas=(.95, .95))
     elif optim == "soap":
       self.optimizer = SOAP(self.model.parameters(), lr = lr, betas=(.95, .95), weight_decay=.01, precondition_frequency=10)
     elif optim == "sgd":
@@ -824,8 +870,15 @@ class PINN_3D(nn.Module):
     else:
       raise ValueError("Invalid optimizer specified. Choose from 'adam', 'sgd', or 'lbfgs'.")
     
-  def add_postTraining(self, lr: float = 1, epochs: int = 1000, lbfgs_type = "standard") -> None:
-    """Adds an additional training stage using L-BFGS optimizer."""
+  def add_postTraining(self, lr: float = 1, epochs: int = 1000, lbfgs_type: str = "standard") -> None:
+    """
+    Adds an additional post-training stage using the L-BFGS optimizer.
+
+    Args:
+      lr (float, optional): Learning rate for the L-BFGS optimizer. Defaults to 1.
+      epochs (int, optional): Number of post-training epochs. Defaults to 1000.
+      lbfgs_type (str, optional): Type of L-BFGS optimizer. Options are "standard", "full_overlap", or "multibatch". Defaults to "standard".
+    """
     if lbfgs_type == "standard":
       self.post_optimizer = torch.optim.LBFGS(self.model.parameters(), lr=lr)
     elif lbfgs_type == "full_overlap": 
@@ -845,12 +898,13 @@ class PINN_3D(nn.Module):
     
     self.post_epochs = epochs
 
-  def add_scheduler(self, scheduler) -> None:
+  def add_scheduler(self, scheduler: torch.optim.lr_scheduler.LRScheduler) -> None:
     """
     Adds a learning rate scheduler to the PINN model.
+    Set up via: PINN_3D.add_scheduler(LRScheduler(optimizer=PINN_3D.optimizer, ...))
 
     Args:
-      scheduler (torch.optim.lr_scheduler): The learning rate scheduler to use.
+      scheduler (torch.optim.lr_scheduler.LRScheduler): The learning rate scheduler to use.
     """
     self.scheduler = scheduler
 
@@ -860,21 +914,30 @@ class PINN_3D(nn.Module):
                   component2: int = 4, centered2: bool = False, vmin2: float = None, vmax2: float = None,
                   lb: np.ndarray = None, ub: np.ndarray = None, resolution: List[int] = None, dim3_tolerance: float = None) -> None:
     """
-    Adds a 2D plot setup to the PINN model.
+    Adds a 2D plot configuration to the PINN model.
+    Call multiple times to add multiple plots.
+
 
     Args:
-      plot_dims (Tuple[int, int]): Dimensions to plot (e.g., (0, 1) for x-y plane).
-      dim3_slice (float): Slice value for the third dimension.
-      t_slice (float): Slice value for the time dimension.
-      plot_data (bool, optional): Flag to plot data points. Defaults to False.
-      component (int, optional): Component to plot (e.g., 0 for mag, 1 for u, ... -> see list). Defaults to 0.
-      lb (np.ndarray, optional): Lower bounds for the plot. Defaults to model's lower bounds.
-      ub (np.ndarray, optional): Upper bounds for the plot. Defaults to model's upper bounds.
-      resolution (List[int], optional): Resolution of the plot. Defaults to [100, 100].
-      dim3_tolerance (float, optional): Tolerance for the third dimension slice. Defaults to 5% of the model's third dimension range.
+      plot_dims (Tuple[int, int]): Indices of the two spatial dimensions to plot (e.g., (0, 1) for x-y).
+      dim3_slice (float): Value at which to slice the third spatial dimension.
+      t_slice (float): Value at which to slice the time dimension.
+      plot_data (bool, optional): If True, overlay data points on the plot. Defaults to False.
+      component1 (int, optional): Index of the first field/component to plot. Defaults to 0.
+      centered1 (bool, optional): If True, center the color scale for component1. Defaults to False.
+      vmin1 (float, optional): Minimum value for the color scale of component1. Defaults to None.
+      vmax1 (float, optional): Maximum value for the color scale of component1. Defaults to None.
+      component2 (int, optional): Index of the second field/component to plot. Defaults to 4.
+      centered2 (bool, optional): If True, center the color scale for component2. Defaults to False.
+      vmin2 (float, optional): Minimum value for the color scale of component2. Defaults to None.
+      vmax2 (float, optional): Maximum value for the color scale of component2. Defaults to None.
+      lb (np.ndarray, optional): Lower bounds for the plot region. Defaults to the model's lower bounds.
+      ub (np.ndarray, optional): Upper bounds for the plot region. Defaults to the model's upper bounds.
+      resolution (List[int], optional): Resolution of the plot grid as [n_x, n_y]. Defaults to [100, 100].
+      dim3_tolerance (float, optional): Tolerance for showing data points in the third dimension. Defaults to 5% of the model's third dimension range.
 
-    Components:
-      0: Magnitude of velocity
+    Field/component indices:
+      0: Magnitude of velocity (|u|)
       1: u component of velocity
       2: v component of velocity
       3: w component of velocity
@@ -884,7 +947,7 @@ class PINN_3D(nn.Module):
       7: du2/dx
       8: du2/dy
       9: Vorticity
-      NYI: Q-criterion
+      (NYI): Q-criterion
 
     """
 
@@ -927,12 +990,13 @@ class PINN_3D(nn.Module):
     if self.autoweight:
       print(f"    Weights: Data: {self.lambda_data:.3e}, BC: {self.lambda_bc:.3e}, NS:{self.lambda_ns:.3e}")
     if self.detailed_err:
+
       # abs_rmse, rel_rmse, abs_mae, rel_mae = detailed_data_err(self.model, self.X_train, self.Y_train, self.denormalize, self.redimension)
       # print("    Detailed Data Errors (Train):")
       # print(f"      MAE (u,v,w) in m/s: {abs_mae}")
       # print(f"      MAE (u,v,w) in %: {rel_mae}")
       # print(f"      RMSE (u,v,w) in m/s: {abs_rmse}")
-      # print(f"      RMSE (u,v,w) in %: {rel_rmse}")
+      # print(f"      RMSE (u,v,w) in %: {rel_rmse}") --> too slow for large datasets
 
       if self.X_test is not None:
         abs_rmse, rel_rmse, abs_mae, rel_mae = detailed_data_err(self.model, self.X_test, self.Y_test, self.denormalize, self.redimension)
@@ -947,52 +1011,68 @@ class PINN_3D(nn.Module):
         self.hist_RMSE_test_w.append(abs_rmse[2])
 
 
-
-      
-    # print(f'Norm = {self.norm_hist[-1]}')
-    # print(f'Mean norm = {torch.mean(torch.stack(self.norm_hist))}')
-
-
   #MARK: Loss Computation
+  def get_mse_loss(
+      self, 
+      x: torch.Tensor, 
+      y: torch.Tensor, 
+      flat_grad: bool = False
+  ) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Computes the scaled mean squared error (MSE) loss between model predictions and targets,
+    performs backpropagation (with optional AMP), and returns the detached loss and gradient.
 
+    Args:
+      x (torch.Tensor): Input tensor for the model.
+      y (torch.Tensor): Target tensor.
+      flat_grad (bool, optional): If True, returns the gradient as a flat vector. Defaults to False.
 
-  def get_mse_loss(self, x, y, flat_grad = False):
+    Returns:
+      tuple[torch.Tensor, torch.Tensor]: The detached loss tensor and the gradient tensor (possibly flattened).
+    """
     with autocast('cuda' if torch.cuda.is_available() else 'cpu', enabled=self.amp_enabled):
       self.optimizer.zero_grad()
-
       loss_data = scaled_mse_loss(self.model, x, y, self.loss_scales)
       if self.amp_enabled:
         scaled_loss_data = self.scaler.scale(loss_data)
         scaled_loss_data.backward()
       else:
         loss_data.backward()
-
-      grad = get_gradient_vector(self.model, flat = flat_grad)
-
+      grad = get_gradient_vector(self.model, flat=flat_grad)
       return loss_data.detach(), grad
     
-  def get_physics_loss(self, x, flat_grad = False):
+  def get_physics_loss(self, x: torch.Tensor, flat_grad: bool = False) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Computes the physics (Navier-Stokes) loss for the given collocation points and returns the loss and its gradient.
+
+    Args:
+      x (torch.Tensor): Collocation points (physics points) as input tensor.
+      flat_grad (bool, optional): If True, returns the gradient as a flat vector. Defaults to False.
+
+    Returns:
+      Tuple[torch.Tensor, torch.Tensor]: The detached physics loss tensor and the gradient tensor (possibly flattened).
+    """
     with autocast('cuda' if torch.cuda.is_available() else 'cpu', enabled=self.amp_enabled):
       self.optimizer.zero_grad()
 
       if self.numerical:
+        # Compute numerical physics loss if enabled
         loss_ns = numerical_physics_loss(self.model, x, self.Re, 0.0025, 0.0025, 0.0025, 2.0E-3, self.denormalize)
       else:
+        # Compute analytical physics loss and track pressure extrema
         loss_ns, pmax, pmin = physics_loss(self.model, x, self.Re, self.normalize, self.denormalize, True)
         loss_ns = loss_ns
-
         self.p_hist.append(pmax.cpu())
 
-      
-      
+      # Backpropagate the loss with or without AMP
       if self.amp_enabled:
         scaled_loss_ns = self.scaler.scale(loss_ns)
         scaled_loss_ns.backward(retain_graph=True)
       else:
         loss_ns.backward()
 
-      grad = get_gradient_vector(self.model, flat = flat_grad)
-
+      # Get the gradient vector (optionally flattened)
+      grad = get_gradient_vector(self.model, flat=flat_grad)
 
       return loss_ns.detach(), grad
     
@@ -1006,88 +1086,108 @@ class PINN_3D(nn.Module):
     Returns:
       torch.Tensor: The total loss.
     """
-    # Zero the gradients of the optimizer
+    # Zero the gradients of the optimizer to ensure no accumulation from previous steps
     self.optimizer.zero_grad()
-    #torch.autograd.set_detect_anomaly(True)
 
-    grads =[]
-    weights = []
+    # Initialize lists to collect gradients and weights for each loss term (data, BC, physics)
+    grads = []   # Stores gradients for each loss component
+    weights = [] # Stores current weights (lambdas) for each loss component
 
-    
-    # Compute data loss if data points are available
+    # Compute data loss and its gradient if data points are available
     if self.N_DATA > 0:
-      self.loss_data = 0
-      grad_data = 0
-      n_batches = len(self.dataloader) if self.grad_acc else 1
-      for idx in range(n_batches):
-        x, y = next(iter(self.dataloader))
+        self.loss_data = 0    # Accumulate data loss over batches
+        grad_data = 0         # Accumulate data gradient over batches
+        n_batches = int(self.n_acc_data)  # Number of batches for gradient accumulation
 
-        loss, grad = self.get_mse_loss(x[0], y[0])
-        
-        self.loss_data += loss / n_batches
-        grad_data += grad / n_batches
-
-      grads.append(grad_data)
-      weights.append(self.lambda_data)
-
-
-      # Compute boundary condition loss if boundary points are available
-      if self.N_BC > 0:
-        self.loss_bc = 0
-        grad_bc = 0
-        n_batches = len(self.bc_dataloader) if self.grad_acc else 1
+        # Loop over data batches for gradient accumulation
         for idx in range(n_batches):
-          x_b, y_b = next(iter(self.bc_dataloader))
+            x, y = next(iter(self.dataloader))  # Get next batch of data
+            loss, grad = self.get_mse_loss(x[0], y[0])  # Compute MSE loss and gradient
+            self.loss_data += loss / n_batches          # Average loss over batches
+            grad_data += grad / n_batches               # Average gradient over batches
 
-          loss, grad = self.get_mse_loss(x_b[0], y_b[0])
+        grads.append(grad_data)         # Store data gradient
+        weights.append(self.lambda_data) # Store data loss weight
 
-          self.loss_bc += loss / n_batches
-          grad_bc += grad / n_batches
+    # Compute boundary condition loss and gradient if BC points are available
+    if self.N_BC > 0:
+        self.loss_bc = 0    # Accumulate BC loss
+        grad_bc = 0         # Accumulate BC gradient
+        n_batches = int(self.n_acc_bc)  # Number of BC batches
 
-        grads.append(grad_bc)
-        weights.append(self.lambda_bc)
-
-      # Compute physics loss if collocation points are available
-      if self.N_COLLOCATION > 0:
-        self.loss_ns = 0
-        grad_ns = 0
-        n_batches = len(self.physics_dataloader) if self.grad_acc else 1
+        # Loop over BC batches for gradient accumulation
         for idx in range(n_batches):
-          batch = next(iter(self.physics_dataloader))[0]
+            x_b, y_b = next(iter(self.bc_dataloader))  # Get next BC batch
+            loss, grad = self.get_mse_loss(x_b[0], y_b[0])  # Compute BC loss and gradient
+            self.loss_bc += loss / n_batches                # Average BC loss
+            grad_bc += grad / n_batches                     # Average BC gradient
 
-          loss, grad = self.get_physics_loss(batch)
-          
-          self.loss_ns += loss / n_batches
-          grad_ns += grad / n_batches
-          
+        grads.append(grad_bc)         # Store BC gradient
+        weights.append(self.lambda_bc) # Store BC loss weight
 
-        grads.append(grad_ns)
-        weights.append(self.lambda_ns)
+    # Compute physics (PDE) loss and gradient if collocation points are available
+    if self.N_COLLOCATION > 0:
+        self.loss_ns = 0    # Accumulate physics loss
+        grad_ns = 0         # Accumulate physics gradient
+        n_batches = int(self.n_acc_physics)  # Number of physics batches
 
+        # Loop over physics batches for gradient accumulation
+        for idx in range(n_batches):
+            batch = next(iter(self.physics_dataloader))[0]  # Get next physics batch
+            loss, grad = self.get_physics_loss(batch)        # Compute physics loss and gradient
+            self.loss_ns += loss / n_batches                 # Average physics loss
+            grad_ns += grad / n_batches                      # Average physics gradient
 
-      if self.autoweight and (self.epoch % self.weight_update_freq == 0) and (self.inner_iter == 0):
-        weights = self.WeightUpdater.update(weights, grads)
+        grads.append(grad_ns)         # Store physics gradient
+        weights.append(self.lambda_ns) # Store physics loss weight
 
+    # Optionally update loss weights using an auto-weighting scheme
+    if self.autoweight and (self.epoch % self.weight_update_freq == 0) and (self.inner_iter == 0):
+        weights = self.WeightUpdater.update(weights, grads)  # Update weights based on gradients
+
+        # Assign updated weights to the respective loss components
         if not self.N_BC == 0:
-          self.lambda_data, self.lambda_bc, self.lambda_ns = weights
+            self.lambda_data, self.lambda_bc, self.lambda_ns = weights
         else:
-          self.lambda_data, self.lambda_ns = weights
+            self.lambda_data, self.lambda_ns = weights
 
-      
-      new_grads = self.WeightUpdater.new_grads(weights, grads)
-      apply_gradient_vector(self.model, new_grads)
+    # Compute the new combined gradient vector using the (possibly updated) weights
+    new_grads = self.WeightUpdater.new_grads(weights, grads)
+    apply_gradient_vector(self.model, new_grads)  # Apply the combined gradient to the model
 
-      self.inner_iter += 1
-    
+    self.inner_iter += 1  # Increment inner iteration counter (for gradient accumulation or weight updates)
 
-      # Calculate the total loss
-      self.loss_total = self.lambda_data*self.loss_data + self.lambda_bc*self.loss_bc + self.lambda_ns*self.loss_ns
+    # Calculate the total weighted loss for logging and optimization
+    self.loss_total = (
+        self.lambda_data * self.loss_data +
+        self.lambda_bc * self.loss_bc +
+        self.lambda_ns * self.loss_ns
+    )
 
-      return self.loss_total
+    return self.loss_total  # Return the total loss for this step
 
 
   #MARK: Output Updating
   def update_all(self):
+    """
+    Updates the training state of the model at each epoch.
+    This method performs the following operations:
+    - Checks for NaN or excessively large loss values. If detected, restores the last best model checkpoint and stops training.
+    - Saves the model checkpoint if the current loss improves upon the best recorded loss at specified intervals.
+    - Steps the learning rate scheduler if available.
+    - Records the current losses, lambda weights, and learning rate history.
+    - Periodically updates training points if point update frequency is set.
+    - Prints callback information and plots training history at specified intervals.
+    - Plots the loss history and model field at specified intervals.
+    Side Effects:
+      - May restore model state from disk.
+      - May save model state to disk.
+      - Updates internal history lists.
+      - May print to stdout and generate plots.
+    Returns:
+      None
+    """
+
 
     current_loss = self.loss_total.item()
 
@@ -1120,7 +1220,7 @@ class PINN_3D(nn.Module):
     self.hist_bc.append(self.loss_bc)
     self.hist_ns.append(self.loss_ns)
 
-    
+    # Record lambda history if auto-weighting is enabled
     self.hist_l1.append(self.lambda_data)
     self.hist_l2.append(self.lambda_bc)
     self.hist_l3.append(self.lambda_ns)
@@ -1128,8 +1228,6 @@ class PINN_3D(nn.Module):
     # Record learning rate history if scheduler is available
     if self.scheduler is not None:
       self.hist_lr.append(self.scheduler.get_last_lr())
-    # else:
-    #   self.hist_lr.append(self.optim_lr)
     
     # Update points periodically if point update frequency is set
     if self.point_update_freq is not None:
@@ -1144,16 +1242,13 @@ class PINN_3D(nn.Module):
 
     # Plot loss history and field at specified intervals
     if self.epoch % self.plot_freq == 0:
-      #self.plot_history()
       self.plot_field()
-
-
 
   
   #MARK: LBFGS - Methods
   def step_standard_LBFGS(self, optimizer) -> None:
 
-    update_batches_in_inner_iters = True
+    update_batches_in_inner_iters = True  # Whether to update data batches in inner iterations of LBFGS --> causes curvature pairs calculated from different batches
 
     if not update_batches_in_inner_iters:
       if self.N_DATA>0: self.dataset.autostepping = False
@@ -1161,21 +1256,29 @@ class PINN_3D(nn.Module):
       if self.N_COLLOCATION>0: self.physics_dataset.autostepping = False
       self.inner_iter = 0
 
-    
-
     optimizer.step(self.compute_losses)
 
-
     if not update_batches_in_inner_iters:
-      if self.N_DATA>0: self.dataset._manual_step()
-      if self.N_BC>0: self.bc_dataset._manual_step()
-      if self.N_COLLOCATION>0: self.physics_dataset._manual_step()
-    
-  
-  
+      if self.N_DATA>0: self.dataset.__manual_step()
+      if self.N_BC>0: self.bc_dataset.__manual_step()
+      if self.N_COLLOCATION>0: self.physics_dataset.__manual_step()
+
+
   def step_full_overlap_LBFGS(self, optimizer) -> None:
-    
+    """
+    Performs a single step of the full-overlap L-BFGS optimizer.
+
+    Args:
+      optimizer: The L-BFGS optimizer instance.
+
+    This method handles the full-overlap L-BFGS step, including line search and warm-up learning rate scheduling.
+    It defines a closure for the optimizer, computes the current loss and gradient, performs the optimizer step,
+    and updates the curvature pairs.
+    """
+
     line_search = optimizer.param_groups[0]['line_search']
+
+    # Warm-up learning rate scheduling
     warm_up_epochs = 50
     warm_up = self.epoch > self.max_epochs and ((self.epoch - self.max_epochs) <= warm_up_epochs)
 
@@ -1209,17 +1312,20 @@ class PINN_3D(nn.Module):
       
       return loss
 
-    #Warm up learning rate
-
+    # Warm up learning rate
     if line_search == 'None':
       if warm_up:
         optimizer.param_groups[0]['lr'] = (self.post_lr - self.post_lr*self.optim_lr)/warm_up_epochs * (self.epoch - self.max_epochs) +self.post_lr*self.optim_lr
 
-
+    # Get the current loss and gradient
     current_loss = self.compute_losses()
     grad = optimizer._gather_flat_grad()
+
+    # Perform the two-loop recursion to compute the search direction
     p = optimizer.two_loop_recursion(-grad)
 
+
+    # Perform the L-BFGS step
     if line_search in ['Armijo', 'Wolfe']:
       options = {'closure': closure, 'current_loss': current_loss}
 
@@ -1234,10 +1340,31 @@ class PINN_3D(nn.Module):
       new_loss = self.compute_losses()
       grad = optimizer._gather_flat_grad()
     
+    # Update the curvature pairs with the new gradient
     optimizer.curvature_update(grad, eps=0.2, damping=True)
 
 
   def step_multibatch_LBFGS(self, optimizer) -> None:
+    """
+    Performs a single optimization step using a multi-batch L-BFGS approach with overlapping batches for data, 
+    boundary conditions, and physics constraints.
+    Args:
+      optimizer: An L-BFGS optimizer instance with custom methods for two-loop recursion and curvature updates.
+    Workflow:
+      - Defines an overlap ratio for batches and splits each batch into main and overlapping parts.
+      - Computes losses and gradients for each batch and its overlap for data, boundary, and physics terms.
+      - Aggregates gradients and losses using a weighted combination that accounts for overlap.
+      - Handles warm-up epochs with a custom learning rate schedule.
+      - Optionally updates loss weights if automatic weighting is enabled.
+      - Stores previous batch gradients and losses for use in the next step.
+      - Updates the optimizer's curvature information for L-BFGS.
+    Notes:
+      - Assumes the existence of attributes such as N_DATA, N_BC, N_COLLOCATION, dataloader, bc_dataloader, 
+        physics_dataloader, lambda_data, lambda_bc, lambda_ns, WeightUpdater, and others.
+      - Requires that the optimizer supports custom methods: two_loop_recursion, step, and curvature_update.
+    """
+
+    # Define the overlap ratio for batch splitting
     overlap_ratio = 0.25                # should be in (0, 0.5)
 
     def split_data(data, overlap_size):
@@ -1245,6 +1372,7 @@ class PINN_3D(nn.Module):
       overlap_data = data[-overlap_size:, :]
       return batch_data, overlap_data
 
+    # Combine the results (gradients / losses) from the main and overlapping batches
     def combine_result(prev, batch, next_):
       return overlap_ratio * (prev + next_) + (1 - 2*overlap_ratio) * batch
       
@@ -1260,6 +1388,7 @@ class PINN_3D(nn.Module):
     warm_up_epochs = 50
     warm_up = self.epoch-1 > self.max_epochs and ((self.epoch-1 - self.max_epochs) <= warm_up_epochs)
 
+    # split the batches into main and overlapping parts
     if not hasattr(self, 'overlap_size_data') and self.N_DATA > 0:
       self.overlap_size_data = int(self.data_batch_size * overlap_ratio)
       self.dataset.batch_size = self.data_batch_size - self.overlap_size_data
@@ -1272,7 +1401,10 @@ class PINN_3D(nn.Module):
     if not hasattr(self, 'overlap_size_physics') and self.N_COLLOCATION > 0:
       self.overlap_size_physics = int(self.physics_batch_size * overlap_ratio)
       self.physics_dataset.batch_size = self.physics_batch_size - self.overlap_size_physics
+
     
+    # Get the current losses and gradients for each loss term
+    # Data Loss
     if self.N_DATA > 0:
       x_data, y_data = next(iter(self.dataloader))
       x_data_batch, x_data_next = split_data(x_data[0], self.overlap_size_data)
@@ -1289,6 +1421,7 @@ class PINN_3D(nn.Module):
 
       weights.append(self.lambda_data)
 
+    # BC Loss
     if self.N_BC > 0:
       x_bc, y_bc = next(iter(self.bc_dataloader))
       x_bc_batch, x_bc_next = split_data(x_bc[0], self.overlap_size_bc)
@@ -1305,10 +1438,13 @@ class PINN_3D(nn.Module):
 
       weights.append(self.lambda_bc)
 
+
+    # Physics Loss
     if self.N_COLLOCATION > 0:
       x_physics_next_list = []
       loss_ns_next, loss_ns_batch, grad_ns_next, grad_ns_batch = None, None, None, None
 
+      # Accumulate gradients and losses for the physics batches (needed if batches are too small for valid curvature pairs)
       for i in range(self.n_acc_physics):
   
         x_physics = next(iter(self.physics_dataloader))[0].float()
@@ -1339,9 +1475,12 @@ class PINN_3D(nn.Module):
 
       weights.append(self.lambda_ns)
 
+    # Apply the current loss weights to the gradients
     total_grad_batch = self.WeightUpdater.new_grads(weights, grad_batch)
     total_grad_next = self.WeightUpdater.new_grads(weights, grad_next)
 
+
+    #Combine the losses from the main and overlapping batches
     if hasattr(self, 'loss_data_prev'):
       self.loss_data = combine_result(self.loss_data_prev, loss_data_batch, loss_data_next)
     if hasattr(self, 'loss_bc_prev'):
@@ -1349,33 +1488,45 @@ class PINN_3D(nn.Module):
     if hasattr(self, 'loss_ns_prev'):
       self.loss_ns = combine_result(self.loss_ns_prev, loss_ns_batch, loss_ns_next)
 
+    # Compute the total loss (for logging)
     self.loss_total = self.lambda_data * self.loss_data + self.lambda_bc * self.loss_bc +self.lambda_ns * self.loss_ns
 
     if not first_call:
       #Warm up learning rate
       if warm_up and optimizer.param_groups[0]['line_search'] == 'None':
         optimizer.param_groups[0]['lr'] = (self.post_lr - self.post_lr*self.optim_lr)/warm_up_epochs * (self.epoch-1 - self.max_epochs) +self.post_lr*self.optim_lr
-      update = True
+
+      # Combine the gradients from the main and overlapping batches
       total_grad = combine_result(self.total_grad_prev, total_grad_batch, total_grad_next)
+
+      # Perform the two-loop recursion to compute the search direction
       p = optimizer.two_loop_recursion(-total_grad)
+
+      # Perform the L-BFGS step and storing the overlapping gradient for future curvature pair calculation
       lr = optimizer.step(p, g_Ok = total_grad_next, g_Sk = total_grad)
     else:
       optimizer.param_groups[0]['lr']=self.post_lr*self.optim_lr
       
 
+    # Update the loss weights if auto-weighting is enabled
     if not warm_up:
       if self.autoweight and self.epoch % self.weight_update_freq == 0:
         weights = self.WeightUpdater.update(weights, grad_batch)
         self.lambda_data, self.lambda_bc, self.lambda_ns = weights
 
+    # With the new applied parameters after the LBFGS step, compute the gradients for the "next" batch again 
+    # and use as "prev" overlapping batch in the next iteration
+
     grad_prev = []
+
+    #Compute gradients
     if self.N_DATA > 0:
       self.loss_data_prev, grad_data_prev = self.get_mse_loss(x_data_next, y_data_next, flat_grad = True)
       grad_prev.append(grad_data_prev)
+
     if self.N_BC > 0:
       self.loss_bc_prev, grad_bc_prev = self.get_mse_loss(x_bc_next, y_bc_next, flat_grad = True)
       grad_prev.append(grad_bc_prev)
-
 
     if self.N_COLLOCATION > 0:
       self.loss_ns_prev = None
@@ -1392,14 +1543,24 @@ class PINN_3D(nn.Module):
 
       grad_prev.append(grad_ns_prev)
 
+
+    # Apply the current loss weights to the gradients
     self.total_grad_prev = self.WeightUpdater.new_grads(weights, grad_prev)
 
+    # Compute the new curvature pairs for the next iteration using the new gradients and the previous gradients of the same iter
     if not first_call:
       optimizer.curvature_update(self.total_grad_prev, eps = 0.2, damping = True)
 
 
-
   def lbfgs_step(self, optimizer) -> None:
+    """
+    Performs a single optimization step using the specified L-BFGS type.
+    Args:
+      optimizer: The L-BFGS optimizer instance.
+
+    This method checks the L-BFGS type and calls the appropriate step function for standard, full-overlap, or multi-batch L-BFGS.
+    """
+
     if self.lbfgs_type == "standard":
       self.step_standard_LBFGS(optimizer)
     elif self.lbfgs_type == "full_overlap":
@@ -1407,7 +1568,6 @@ class PINN_3D(nn.Module):
     elif self.lbfgs_type == "multibatch":
       self.step_multibatch_LBFGS(optimizer)
       
-
   #MARK: Stepping
 
   def step(self) -> None:
@@ -1436,8 +1596,6 @@ class PINN_3D(nn.Module):
       self.lbfgs_step(self.post_optimizer)
 
     step_time = time.time()-start
-
-
     
     if self.epoch % self.print_freq == 0:
       print(f'Step Time: {step_time}')
@@ -1448,23 +1606,27 @@ class PINN_3D(nn.Module):
 
  
   #MARK: Train
-  def train(self, epochs: int, print_freq: int = 100, plot_freq: int = 500, point_update_freq: int = None, point_keep_percentage: float = 20, gradient_accumulation: bool = False, autoweight_scheme = None, autoweight_freq = 10, save_freq: int = 50) -> None:
+  def train(self, epochs: int, print_freq: int = 100, plot_freq: int = 500, point_update_freq: int = None, point_keep_percentage: float = 20, autoweight_scheme = None, autoweight_freq = 10, save_freq: int = 50) -> None:
     """
     Trains the PINN model for a specified number of epochs.
 
     Args:
       epochs (int): Number of epochs to train the model.
-      print_freq (int, optional): Frequency of printing training progress. Defaults to 100.
-      plot_freq (int, optional): Frequency of plotting loss history and field. Defaults to 500.
-      point_update_freq (int, optional): Frequency of updating collocation and boundary points. Defaults to None.
-      point_keep_percentage (float, optional): Percentage of collocation points to keep if points already exist. Defaults to 20.
-      conflictfree (bool, optional): Flag to enable ConFIG. Defaults to False.
-    
+      print_freq (int, optional): Frequency (in epochs) to print training progress. Defaults to 100.
+      plot_freq (int, optional): Frequency (in epochs) to plot loss history and field. Defaults to 500.
+      point_update_freq (int, optional): Frequency (in epochs) to update collocation and boundary points. Defaults to None (no update).
+      point_keep_percentage (float, optional): Percentage of collocation points to keep when updating points. Defaults to 20.
+      autoweight_scheme (str or None, optional): Scheme for automatic loss weighting. Defaults to None (no auto-weighting).
+        - 1: ConflictFree
+        - 2: Wang 2023 (gradient norms)
+        - 3: Wang 2021 (Data loss weight is set to 1)
+        - 4: Wang 2021 (PDE weight is set to 1)
+      autoweight_freq (int, optional): Frequency (in epochs) to update loss weights if auto-weighting is enabled. Defaults to 10.
+      save_freq (int, optional): Frequency (in epochs) to save model checkpoints. Defaults to 50.
     """
     # Set random seed for reproducibility
     self.best_loss = float('inf')
     self.max_epochs = epochs
-    self.grad_acc = gradient_accumulation
     
     self.WeightUpdater = WeightUpdater(autoweight_scheme, alpha = 0.9, device=self.device)
 
@@ -1475,7 +1637,6 @@ class PINN_3D(nn.Module):
       self.lambda_bc = 1
       self.lambda_ns = 1
       self.weight_update_freq = autoweight_freq
-
 
 
     # Set training parameters
@@ -1492,41 +1653,34 @@ class PINN_3D(nn.Module):
       self.step()  # Perform a single optimization step
 
     if self.post_optimizer is not None:
-      # def warmupLR(idx_epoch):
-      #   warmup_epochs = 100
-      #   return idx_epoch / warmup_epochs if idx_epoch < warmup_epochs else 1
-
-      #self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.post_optimizer, lr_lambda=warmupLR)
-
       # if self.scheduler is not None:
       #   self.scheduler.optimizer = self.post_optimizer
+
       while self.epoch <= (epochs+self.post_epochs):
         self.step()
-        if self.scheduler is not None:
-          if self.scheduler.get_last_lr()[0] < 1e-6:
-            break
 
       
     self.plot_history()  # Plot the final loss history
     self.plot_field()  # Plot the final field
     self.save_hist(f"{self.NAME}_history.csv")
-    
+
     self.save(f"{self.NAME}_final_state.pt")
       
-
     print("Training finished!")
 
     
-
-
   #MARK: Plot History
-  def plot_history(self) -> plt.Figure:
+  def plot_history(self) -> None:
     """
-    Plots the loss history of the PINN model, including total loss, data loss, boundary condition loss, and Navier-Stokes loss.
-    Optionally plots the learning rate history if a scheduler is used.
+    Plots the training history for the PINN model.
 
-    Returns:
-      plt.Figure: The figure object containing the loss history plot.
+    This includes:
+      - Total loss, data loss, boundary condition loss, and Navier-Stokes loss over epochs.
+      - Learning rate history if a scheduler is used.
+      - Loss weights (lambdas) if auto-weighting is enabled.
+      - Test RMSE curves if available.
+      - Maximum nondimensional pressure history if available.
+
     """
     # Stack the loss histories and move them to CPU
     total = torch.stack(self.hist_total, 0).cpu()
@@ -1591,8 +1745,6 @@ class PINN_3D(nn.Module):
       #plt.legend()
       plt.savefig(f"{self.NAME}_p_max.png")
       plt.close()
-
-    return fig
 
      
 
@@ -1660,9 +1812,9 @@ class PINN_3D(nn.Module):
     np.savetxt(path, hist, header=header, delimiter=",", comments="")
 
     if self.X_train is not None:
-      epochs = torch.arange(len(self.hist_RMSE_train_u))*self.print_freq
-      hist = torch.vstack((epochs, torch.tensor(self.hist_RMSE_train_u), torch.tensor(self.hist_RMSE_train_v), torch.tensor(self.hist_RMSE_train_w)))
-      header = 'Epoch,RMSE_train_u,RMSE_train_v,RMSE_train_w'
+      epochs = torch.arange(len(self.hist_RMSE_test_u))*self.print_freq
+      hist = torch.vstack((epochs, torch.tensor(self.hist_RMSE_test_u), torch.tensor(self.hist_RMSE_test_v), torch.tensor(self.hist_RMSE_test_w)))
+      header = 'Epoch,RMSE_test_u,RMSE_test_v,RMSE_test_w'
       hist = hist.detach().numpy().T
       np.savetxt(path.replace('.csv', '_rmse.csv'), hist, header=header, delimiter=",", comments="")
 
@@ -1674,16 +1826,7 @@ class PINN_3D(nn.Module):
     Args:
       path (str): Path to save the trained model.
     """
-    if isinstance(self.model, DataParallel):
-      state_dict = self.model.module.state_dict()
-    else:
-      state_dict = self.model.state_dict()
-
-    torch.save({
-                'model_state_dict': state_dict,
-                'norm_scales': self.norm_scales,
-                'norm_offsets': self.norm_offsets
-                }, path)
+    save_predictable(self, path)
 
   def load(self, path: str) -> None:
     """
@@ -1696,9 +1839,14 @@ class PINN_3D(nn.Module):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     checkpoint = torch.load(path, map_location=device, weights_only=False)
-    
+
+    self.l_scale = checkpoint['l_scale']
+    self.u_scale = checkpoint['u_scale']
+    self.t_scale = checkpoint['t_scale']
+    self.p_scale = checkpoint['p_scale']
     self.norm_scales = checkpoint['norm_scales']
     self.norm_offsets = checkpoint['norm_offsets']
+    self.plot_setups = checkpoint['plot_setups']
 
     if isinstance(self.model, DataParallel):
       self.model.module.load_state_dict(checkpoint['model_state_dict'])
@@ -1747,7 +1895,17 @@ def save_predictable(PINN: PINN_3D, path: str) -> None:
               'plot_setups': PINN.plot_setups
               }, path)
   
+
 def load_predictable(path: str) -> PINN_3D:
+  """
+  Loads a saved PINN_3D model from the specified path.
+
+  Args:
+    path (str): Path to the saved model file.
+
+  Returns:
+    PINN_3D: The loaded PINN_3D model instance with weights and configuration restored.
+  """
   checkpoint = torch.load(path, map_location=torch.device('cpu'), weights_only=False)
   
   PINN = PINN_3D(
@@ -1767,7 +1925,7 @@ def load_predictable(path: str) -> PINN_3D:
   PINN.norm_scales = checkpoint['norm_scales']
   PINN.norm_offsets = checkpoint['norm_offsets']
   PINN.plot_setups = checkpoint['plot_setups']
- 
+  
 
   if isinstance(PINN.model, DataParallel):
     PINN.model.module.load_state_dict(checkpoint['model_state_dict'])
@@ -1781,25 +1939,31 @@ def load_predictable(path: str) -> PINN_3D:
 
 
 
-
-
 #MARK: Custom Dataset
 class CustomDataset(Dataset):
   def __init__(self, Xdata: torch.Tensor, Ydata: torch.Tensor = None, device = None, batch_size: int = None, shuffle: bool = False, min_size: int = None):
     """
-    Initializes the PhysicsDataset with the given data.
+    Custom dataset for batching and shuffling data for PINN training.
 
     Args:
-      data (torch.Tensor): The data to be used in the dataset.
+      Xdata (torch.Tensor): Input data tensor.
+      Ydata (torch.Tensor, optional): Output/target data tensor. Defaults to None.
+      device (str or torch.device, optional): Device to move data to. Defaults to CUDA if available.
+      batch_size (int, optional): Batch size for data loading. Defaults to all data.
+      shuffle (bool, optional): Whether to shuffle data at the start of each epoch. Defaults to False.
+      min_size (int, optional): Minimum size for the last batch. Defaults to 512 or batch_size if shuffle is True.
     """
     self.Xdata = Xdata
     self.Ydata = Ydata
 
+    # Set batch size
     self.batch_size = batch_size if batch_size is not None else len(Xdata[:, 0])
     self.shuffle = shuffle
 
+    # Current batch index
     self.current_idx = 0
     
+    # Set minimum batch size for the last batch
     if self.shuffle == True and min_size == None:
       self.min_size = batch_size
     elif min_size is not None:
@@ -1807,33 +1971,37 @@ class CustomDataset(Dataset):
     else:
       self.min_size = 512
 
+    # Whether to automatically step to next batch after each __getitem__ call
     self.autostepping = True
       
-
+    # Number of batches in the dataset
     self.l = self.__len__()
 
+    # Set device
     if device is not None:
       self.device = device
     else:
       self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-
   def __len__(self) -> int:
     """
-    Returns the length of the dataset.
+    Returns the number of batches in the dataset.
 
     Returns:
-      int: The number of data points in the dataset.
+      int: Number of batches.
     """
-
     l = len(self.Xdata[:, 0]) // self.batch_size
 
+    # Add one more batch if the remainder is at least min_size
     if len(self.Xdata[:, 0]) % self.batch_size >= self.min_size:
       l += 1
 
     return l
 
-  def _manual_step(self):
+  def __manual_step(self):
+    """
+    Manually step to the next batch index.
+    """
     if self.current_idx == self.l-1:
       self.current_idx = 0
     else:
@@ -1841,35 +2009,40 @@ class CustomDataset(Dataset):
 
   def __getitem__(self, dummy_idx: int, step = True) -> torch.Tensor:
     """
-    Returns the data point at the specified index.
+    Returns the next batch of data (optionally shuffling at the start of each epoch).
 
     Args:
-      idx (int): The index of the data point to retrieve.
+      dummy_idx (int): Dummy index (ignored, for compatibility with DataLoader).
+      step (bool, optional): Whether to step to the next batch after this call. Defaults to True.
 
     Returns:
-      torch.Tensor: The data point at the specified index.
+      tuple(torch.Tensor, torch.Tensor) or torch.Tensor: Batch of input (and output) data.
     """
-
     idx = self.current_idx
 
+    # Shuffle data at the start of each epoch
     if idx == 0 and self.shuffle:
       indices = torch.randperm(len(self.Xdata[:, 0]))
       self.Xdata = self.Xdata[indices, :]
       if self.Ydata is not None:
         self.Ydata = self.Ydata[indices, :]
 
+    # Compute batch slice indices
     idx_0 = idx * self.batch_size
     idx_1 = (idx + 1) * self.batch_size
 
+    # Adjust for last batch if it is smaller
     if idx_1 > len(self.Xdata[:, 0]):
       idx_1 = len(self.Xdata[:, 0])
 
+    # Step to next batch if enabled
     if step and self.autostepping:
       if idx == self.l-1:
         self.current_idx = 0
       else:
         self.current_idx += 1  
 
+    # Return batch (with or without targets)
     if self.Ydata is not None:
       return self.Xdata[idx_0:idx_1, :].to(self.device).float(), self.Ydata[idx_0:idx_1, :].to(self.device).float()
     else:

@@ -5,18 +5,54 @@ import matplotlib as mpl
 import torch
 
 
-def plotField(x, y, field, x_point, y_point, data_point, label, suptitle, filename, dim1_name='x', dim2_name='y', centered=False, vmin=None, vmax=None):
-    
-    fig, ax=plt.subplots(1,1, figsize=(10,5))
+def plotField(
+    x: np.ndarray,
+    y: np.ndarray,
+    field: np.ndarray,
+    x_point: np.ndarray,
+    y_point: np.ndarray,
+    data_point: np.ndarray,
+    label: str,
+    suptitle: str,
+    filename: str,
+    dim1_name: str = 'x',
+    dim2_name: str = 'y',
+    centered: bool = False,
+    vmin: float = None,
+    vmax: float = None
+) -> plt.Figure:
+    """
+    Plots a 2D field with optional data points overlay and colorbar.
+
+    Args:
+        x (np.ndarray): 2D array of x-coordinates (meshgrid).
+        y (np.ndarray): 2D array of y-coordinates (meshgrid).
+        field (np.ndarray): 2D array of field values to plot.
+        x_point (np.ndarray): 1D array of x-coordinates for data points (optional).
+        y_point (np.ndarray): 1D array of y-coordinates for data points (optional).
+        data_point (np.ndarray): 1D array of data values for scatter points (optional).
+        label (str): Label for the colorbar.
+        suptitle (str): Figure title.
+        filename (str): Path to save the figure.
+        dim1_name (str): Name for x-axis (default 'x').
+        dim2_name (str): Name for y-axis (default 'y').
+        centered (bool): Whether to center the color normalization at zero.
+        vmin (float): Minimum value for color normalization (optional).
+        vmax (float): Maximum value for color normalization (optional).
+
+    Returns:
+        plt.Figure: The matplotlib figure object.
+    """
+    fig, ax = plt.subplots(1, 1, figsize=(10, 5))
 
     fig.suptitle(suptitle, fontsize=20)
     
-    min1=field.min()
-    max1=field.max()
+    min1 = field.min()
+    max1 = field.max()
 
     if data_point is not None:
-        min1=np.minimum(min1, data_point.min())
-        max1=np.maximum(max1, data_point.max())
+        min1 = np.minimum(min1, data_point.min())
+        max1 = np.maximum(max1, data_point.max())
 
     if vmin is not None:
         min1 = vmin
@@ -28,9 +64,7 @@ def plotField(x, y, field, x_point, y_point, data_point, label, suptitle, filena
     else:
         norm = mpl.colors.Normalize(vmin=min1, vmax=max1)
 
-
-
-    plt_mag=ax.contourf(x, y, field ,256, cmap='jet', norm=norm)
+    plt_mag = ax.contourf(x, y, field, 256, cmap='jet', norm=norm)
     if data_point is not None:
         ax.scatter(x_point, y_point, c=data_point, cmap='jet', s=20, edgecolors='black', norm=norm)
     ax.set_xlabel(f"{dim1_name} (m)")
@@ -40,7 +74,7 @@ def plotField(x, y, field, x_point, y_point, data_point, label, suptitle, filena
     ax.set_aspect('equal')
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.05)
-    cbar=fig.colorbar(plt_mag, cax=cax)
+    cbar = fig.colorbar(plt_mag, cax=cax)
     cbar.set_label(label)
 
     plt.savefig(filename)
@@ -48,9 +82,67 @@ def plotField(x, y, field, x_point, y_point, data_point, label, suptitle, filena
 
     return fig
 
-def plotField2(x1, y1, field1, x_point1, y_point1, data_point1, label1, centered1, vmin1, vmax1,
-               x2, y2, field2, x_point2, y_point2, data_point2, label2, centered2, vmin2, vmax2,
-               suptitle, filename, dim1_name='x', dim2_name='y'):
+def plotField2(
+    x1: np.ndarray,
+    y1: np.ndarray,
+    field1: np.ndarray,
+    x_point1: np.ndarray,
+    y_point1: np.ndarray,
+    data_point1: np.ndarray,
+    label1: str,
+    centered1: bool,
+    vmin1: float,
+    vmax1: float,
+    x2: np.ndarray,
+    y2: np.ndarray,
+    field2: np.ndarray,
+    x_point2: np.ndarray,
+    y_point2: np.ndarray,
+    data_point2: np.ndarray,
+    label2: str,
+    centered2: bool,
+    vmin2: float,
+    vmax2: float,
+    suptitle: str,
+    filename: str,
+    dim1_name: str = 'x',
+    dim2_name: str = 'y'
+) -> plt.Figure:
+    """
+    Plots two 2D scalar fields side by side with optional overlaid scatter data points, colorbars, and custom normalization.
+    Args:
+        x1 (np.ndarray): X-coordinates for the first field (2D meshgrid).
+        y1 (np.ndarray): Y-coordinates for the first field (2D meshgrid).
+        field1 (np.ndarray): Scalar field values for the first plot.
+        x_point1 (np.ndarray): X-coordinates for scatter points on the first plot.
+        y_point1 (np.ndarray): Y-coordinates for scatter points on the first plot.
+        data_point1 (np.ndarray): Data values for scatter points on the first plot.
+        label1 (str): Colorbar label for the first plot.
+        centered1 (bool): Whether to use a centered normalization (centered at zero) for the first plot.
+        vmin1 (float): Minimum value for color normalization of the first plot. If None, uses data minimum.
+        vmax1 (float): Maximum value for color normalization of the first plot. If None, uses data maximum.
+        x2 (np.ndarray): X-coordinates for the second field (2D meshgrid).
+        y2 (np.ndarray): Y-coordinates for the second field (2D meshgrid).
+        field2 (np.ndarray): Scalar field values for the second plot.
+        x_point2 (np.ndarray): X-coordinates for scatter points on the second plot.
+        y_point2 (np.ndarray): Y-coordinates for scatter points on the second plot.
+        data_point2 (np.ndarray): Data values for scatter points on the second plot.
+        label2 (str): Colorbar label for the second plot.
+        centered2 (bool): Whether to use a centered normalization (centered at zero) for the second plot.
+        vmin2 (float): Minimum value for color normalization of the second plot. If None, uses data minimum.
+        vmax2 (float): Maximum value for color normalization of the second plot. If None, uses data maximum.
+        suptitle (str): Supertitle for the entire figure.
+        filename (str): Path to save the resulting figure.
+        dim1_name (str, optional): Name for the x-axis dimension (default is 'x').
+        dim2_name (str, optional): Name for the y-axis dimension (default is 'y').
+    Returns:
+        plt.Figure: The matplotlib Figure object containing the plots.
+    Notes:
+        - Both fields are plotted using `contourf` with the 'jet' colormap.
+        - If `data_point1` or `data_point2` is not None, scatter points are overlaid on the respective plots.
+        - Colorbars are added for both plots, and normalization can be centered or linear.
+        - The figure is saved to the specified filename and then closed.
+    """
     
     fig, (ax1, ax2)=plt.subplots(2,1, figsize=(10,10))
 
@@ -87,7 +179,6 @@ def plotField2(x1, y1, field1, x_point1, y_point1, data_point1, label1, centered
     cbar1=fig.colorbar(plt_mag, cax=cax1)
     cbar1.set_label(label1)
 
-
     min2=field2.min()
     max2=field2.max()
 
@@ -103,7 +194,6 @@ def plotField2(x1, y1, field1, x_point1, y_point1, data_point1, label1, centered
         min2 = vmin2
     if vmax2 is not None:
         max2 = vmax2
-
 
     if centered2:
         norm2 = mpl.colors.CenteredNorm(vcenter=0, halfrange=max(abs(min2), abs(max2)))
@@ -123,30 +213,51 @@ def plotField2(x1, y1, field1, x_point1, y_point1, data_point1, label1, centered
     cbar2=fig.colorbar(plt_mag2, cax=cax2)
     cbar2.set_label(label2)
 
-
-
     plt.savefig(filename)
     plt.close()
     return fig
 
 
-def plotPINN_2D(predict: callable, plot_dims: list = [0, 1], dim3_slice: float = 0, t_slice: float = 0, component1: int = 0, data1: np.ndarray = None, dim3_tolerance: float = 0.05, centered1:bool = False, vmin1:float = None, vmax1:float = None,
-                component2: int = None, centered2:bool = False, vmin2:float = None, vmax2:float = None, lb: list = [-0.5, -1.5], ub: list = [7.5, 1.5], resolution: list = [640, 240]) -> plt.Figure:
+def plotPINN_2D(
+    predict: callable,
+    plot_dims: list = [0, 1],
+    dim3_slice: float = 0,
+    t_slice: float = 0,
+    component1: int = 0,
+    data1: np.ndarray = None,
+    dim3_tolerance: float = 0.05,
+    centered1: bool = False,
+    vmin1: float = None,
+    vmax1: float = None,
+    component2: int = None,
+    centered2: bool = False,
+    vmin2: float = None,
+    vmax2: float = None,
+    lb: list = [-0.5, -1.5],
+    ub: list = [7.5, 1.5],
+    resolution: list = [640, 240]
+) -> plt.Figure:
     """
-    Plots the 2D field predicted by a PINN model along with the true data if available.
+    Plots the 2D field(s) predicted by a PINN model along with the true data if available.
 
     Args:
-        predict (callable): The PINN model prediction function.
-        plot_dims (list): The dimensions to plot.
-        dim3_slice (float): The slice value for the third dimension.
-        t_slice (float): The time slice value.
-        component1 (int): The component to plot (see list of possible components to plot).
-        data1 (np.ndarray): The true data array.
-        dim3_tolerance (float): The tolerance for the third dimension slice.
-        component2 (int): The second component to plot (optional).
-        lb (list): The lower bounds for the plot dimensions.
-        ub (list): The upper bounds for the plot dimensions.
-        resolution (list): The resolution of the plot.
+        predict (callable): The PINN model prediction function. Should accept a torch tensor of shape (N, 4) and return a tensor of predictions.
+        plot_dims (list[int], optional): The two spatial dimensions to plot (indices 0, 1, or 2). Default is [0, 1].
+        dim3_slice (float, optional): The value at which to slice the third spatial dimension. Default is 0.
+        t_slice (float, optional): The time slice value. Default is 0.
+        component1 (int, optional): The first field/component to plot (see below for options). Default is 0.
+        data1 (np.ndarray, optional): The true data array, shape (N, >=8). Default is None.
+        dim3_tolerance (float, optional): Tolerance for selecting the third dimension slice from data1. Default is 0.05.
+        centered1 (bool, optional): Whether to center the color normalization at zero for the first field. Default is False.
+        vmin1 (float, optional): Minimum value for color normalization of the first field. Default is None.
+        vmax1 (float, optional): Maximum value for color normalization of the first field. Default is None.
+        component2 (int, optional): The second field/component to plot (optional). Default is None.
+        centered2 (bool, optional): Whether to center the color normalization at zero for the second field. Default is False.
+        vmin2 (float, optional): Minimum value for color normalization of the second field. Default is None.
+        vmax2 (float, optional): Maximum value for color normalization of the second field. Default is None.
+        lb (list[float], optional): Lower bounds for the plot dimensions. Default is [-0.5, -1.5].
+        ub (list[float], optional): Upper bounds for the plot dimensions. Default is [7.5, 1.5].
+        resolution (list[int], optional): Resolution of the plot grid [nx, ny]. Default is [640, 240].
 
     Returns:
         plt.Figure: The matplotlib figure object.
@@ -162,10 +273,14 @@ def plotPINN_2D(predict: callable, plot_dims: list = [0, 1], dim3_slice: float =
         7: du2/dx
         8: du2/dy
         9: Vorticity
-        10: Q-criterion # not implemented yet
+        10: Q-criterion (not implemented)
+
+    Notes:
+        - If component2 is provided, both fields are plotted in a single figure.
+        - If data1 is provided and component1 < 4, true data points are overlaid.
     """
-    comp_names = ['mag', 'u', 'v', 'w', 'p', 'du1/dx', 'du1/dy', 'du2/dx', 'du2/dy', 'vorticity', 'Q-criterion']  # Component names
-    dim_names = ['x', 'y', 'z']  # Dimension names
+    comp_names = ['mag', 'u', 'v', 'w', 'p', 'du1/dx', 'du1/dy', 'du2/dx', 'du2/dy', 'vorticity', 'Q-criterion']
+    dim_names = ['x', 'y', 'z']
 
     dim1, dim2 = plot_dims[0], plot_dims[1]
     dim3 = (set([0, 1, 2]) - set(plot_dims)).pop()
@@ -227,7 +342,6 @@ def plotPINN_2D(predict: callable, plot_dims: list = [0, 1], dim3_slice: float =
         elif component == 4:
             field = np.reshape(Y[:, 3].detach().numpy(), (resolution[1], resolution[0]))
             unit = 'Pa'
-        
         elif component >= 5:
             u1 = Y[:, dim1].detach().numpy()
             u2 = Y[:, dim2].detach().numpy()
@@ -240,8 +354,7 @@ def plotPINN_2D(predict: callable, plot_dims: list = [0, 1], dim3_slice: float =
 
             grad_u1 = np.gradient(u1, dx, dy, edge_order=2)
             grad_u2 = np.gradient(u2, dx, dy, edge_order=2)
-            
-            
+
             unit = '1/s'
 
             if component >= 5 and component <= 6:

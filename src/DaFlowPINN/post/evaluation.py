@@ -4,75 +4,177 @@ import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import torch
 import time
-
+from typing import Union, List, Tuple
 
 from .plot import plotField, plotField2
 
-def abs_mae(Y_pred, Y_true):
-    if not isinstance(Y_pred, torch.Tensor):
-        Y_pred = torch.tensor(Y_pred, requires_grad=False)
-    if not isinstance(Y_true, torch.Tensor):
-        Y_true = torch.tensor(Y_true, requires_grad=False)
-    return torch.nanmean(torch.abs((Y_pred-Y_true))).item()
+def abs_mae(Y_pred: Union[torch.Tensor, np.ndarray], Y_true: Union[torch.Tensor, np.ndarray]) -> float:
+    """
+    Compute the absolute Mean Absolute Error (MAE) between predictions and ground truth.
 
-def rel_mae(Y_pred, Y_true):
+    Args:
+        Y_pred: Predicted values (torch.Tensor or np.ndarray).
+        Y_true: Ground truth values (torch.Tensor or np.ndarray).
+
+    Returns:
+        The absolute MAE as a float.
+    """
     if not isinstance(Y_pred, torch.Tensor):
         Y_pred = torch.tensor(Y_pred, requires_grad=False)
     if not isinstance(Y_true, torch.Tensor):
         Y_true = torch.tensor(Y_true, requires_grad=False)
-    rel_error = torch.abs(torch.div((Y_pred-Y_true), Y_true))
+
+def rel_mae(Y_pred: Union[torch.Tensor, np.ndarray], Y_true: Union[torch.Tensor, np.ndarray]) -> float:
+    """
+    Compute the relative Mean Absolute Error (MAE) in percent between predictions and ground truth.
+
+    Args:
+        Y_pred: Predicted values (torch.Tensor or np.ndarray).
+        Y_true: Ground truth values (torch.Tensor or np.ndarray).
+
+    Returns:
+        The relative MAE as a percentage (float).
+    """
+    if not isinstance(Y_pred, torch.Tensor):
+        Y_pred = torch.tensor(Y_pred, requires_grad=False)
+    if not isinstance(Y_true, torch.Tensor):
+        Y_true = torch.tensor(Y_true, requires_grad=False)
+    rel_error = torch.abs(torch.div((Y_pred - Y_true), Y_true))
     rel_error = rel_error[~torch.isinf(rel_error)]
     return torch.nanmean(rel_error).item() * 100
 
-def abs_rmse(Y_pred, Y_true):
+def abs_rmse(Y_pred: Union[torch.Tensor, np.ndarray], Y_true: Union[torch.Tensor, np.ndarray]) -> float:
+    """
+    Compute the absolute Root Mean Squared Error (RMSE) between predictions and ground truth.
+
+    Args:
+        Y_pred: Predicted values (torch.Tensor or np.ndarray).
+        Y_true: Ground truth values (torch.Tensor or np.ndarray).
+
+    Returns:
+        The absolute RMSE as a float.
+    """
     if not isinstance(Y_pred, torch.Tensor):
         Y_pred = torch.tensor(Y_pred, requires_grad=False)
     if not isinstance(Y_true, torch.Tensor):
         Y_true = torch.tensor(Y_true, requires_grad=False)
-    return torch.sqrt(torch.nanmean((Y_pred-Y_true)**2)).item()
+    return torch.sqrt(torch.nanmean((Y_pred - Y_true) ** 2)).item()
 
-def rel_rmse(Y_pred, Y_true):
+
+def rel_rmse(Y_pred: Union[torch.Tensor, np.ndarray], Y_true: Union[torch.Tensor, np.ndarray]) -> float:
+    """
+    Compute the relative Root Mean Squared Error (RMSE) in percent between predictions and ground truth.
+
+    Args:
+        Y_pred: Predicted values (torch.Tensor or np.ndarray).
+        Y_true: Ground truth values (torch.Tensor or np.ndarray).
+
+    Returns:
+        The relative RMSE as a percentage (float).
+    """
     if not isinstance(Y_pred, torch.Tensor):
         Y_pred = torch.tensor(Y_pred, requires_grad=False)
     if not isinstance(Y_true, torch.Tensor):
         Y_true = torch.tensor(Y_true, requires_grad=False)
-
-    rel_error = torch.div((Y_pred-Y_true),Y_true)**2
+    rel_error = torch.div((Y_pred - Y_true), Y_true) ** 2
     rel_error = rel_error[~torch.isinf(rel_error)]
-    return torch.sqrt(torch.nanmean(rel_error)).item()*100
+    return torch.sqrt(torch.nanmean(rel_error)).item() * 100
 
 
-def detailed_data_err(model, X, Y_true, denormalize, redimension):
-  with torch.no_grad():
-    Y_pred = model(X)
-    Y_pred = redimension(y=denormalize(y=Y_pred))
-    Y_true = redimension(y=denormalize(y=Y_true))
 
-    abs_rmse_u = abs_rmse(Y_pred[:,0], Y_true[:,0])
-    abs_rmse_v = abs_rmse(Y_pred[:,1], Y_true[:,1])
-    abs_rmse_w = abs_rmse(Y_pred[:,2], Y_true[:,2])
+def detailed_data_err(
+    model: torch.nn.Module,
+    X: torch.Tensor,
+    Y_true: torch.Tensor,
+    denormalize: callable,
+    redimension: callable
+) -> Tuple[List[float], List[float], List[float], List[float]]:
+    """
+    Compute detailed error metrics (RMSE and MAE, both absolute and relative) for u, v, w components
+    between model predictions and ground truth.
 
-    rel_rmse_u = rel_rmse(Y_pred[:,0], Y_true[:,0])
-    rel_rmse_v = rel_rmse(Y_pred[:,1], Y_true[:,1])
-    rel_rmse_w = rel_rmse(Y_pred[:,2], Y_true[:,2])
+    Args:
+        model: The trained PyTorch model to evaluate.
+        X: Input tensor for the model.
+        Y_true: Ground truth tensor.
+        denormalize: Function to denormalize the output.
+        redimension: Function to reshape or redimension the output.
 
-    abs_mae_u = abs_mae(Y_pred[:,0], Y_true[:,0])
-    abs_mae_v = abs_mae(Y_pred[:,1], Y_true[:,1])
-    abs_mae_w = abs_mae(Y_pred[:,2], Y_true[:,2])
+    Returns:
+        Tuple containing:
+            - List of absolute RMSE values for u, v, w.
+            - List of relative RMSE values for u, v, w.
+            - List of absolute MAE values for u, v, w.
+            - List of relative MAE values for u, v, w.
+    """
+    with torch.no_grad():
+        Y_pred = model(X)
+        Y_pred = redimension(y=denormalize(y=Y_pred))
+        Y_true = redimension(y=denormalize(y=Y_true))
 
-    rel_mae_u = rel_mae(Y_pred[:,0], Y_true[:,0])
-    rel_mae_v = rel_mae(Y_pred[:,1], Y_true[:,1])
-    rel_mae_w = rel_mae(Y_pred[:,2], Y_true[:,2])
+        abs_rmse_u = abs_rmse(Y_pred[:, 0], Y_true[:, 0])
+        abs_rmse_v = abs_rmse(Y_pred[:, 1], Y_true[:, 1])
+        abs_rmse_w = abs_rmse(Y_pred[:, 2], Y_true[:, 2])
 
-    a_rmse = [abs_rmse_u, abs_rmse_v, abs_rmse_w]
-    r_rmse = [rel_rmse_u, rel_rmse_v, rel_rmse_w]
-    a_mae = [abs_mae_u, abs_mae_v, abs_mae_w]
-    r_mae = [rel_mae_u, rel_mae_v, rel_mae_w]
+        rel_rmse_u = rel_rmse(Y_pred[:, 0], Y_true[:, 0])
+        rel_rmse_v = rel_rmse(Y_pred[:, 1], Y_true[:, 1])
+        rel_rmse_w = rel_rmse(Y_pred[:, 2], Y_true[:, 2])
 
-  return a_rmse, r_rmse, a_mae, r_mae
+        abs_mae_u = abs_mae(Y_pred[:, 0], Y_true[:, 0])
+        abs_mae_v = abs_mae(Y_pred[:, 1], Y_true[:, 1])
+        abs_mae_w = abs_mae(Y_pred[:, 2], Y_true[:, 2])
+
+        rel_mae_u = rel_mae(Y_pred[:, 0], Y_true[:, 0])
+        rel_mae_v = rel_mae(Y_pred[:, 1], Y_true[:, 1])
+        rel_mae_w = rel_mae(Y_pred[:, 2], Y_true[:, 2])
+
+        a_rmse = [abs_rmse_u, abs_rmse_v, abs_rmse_w]
+        r_rmse = [rel_rmse_u, rel_rmse_v, rel_rmse_w]
+        a_mae = [abs_mae_u, abs_mae_v, abs_mae_w]
+        r_mae = [rel_mae_u, rel_mae_v, rel_mae_w]
+
+    return a_rmse, r_rmse, a_mae, r_mae
 
 
-def load_data(datafile, tmin, tmax, nt_max, zmin, zmax, nz_max, nx_max=None, ny_max=None):
+def load_data(
+    datafile: str,
+    tmin: float,
+    tmax: float,
+    nt_max: int,
+    zmin: float,
+    zmax: float,
+    nz_max: int,
+    nx_max: int = None,
+    ny_max: int = None
+) -> tuple:
+    """
+    Load and subsample ground truth velocity fields from a NetCDF (.nc) file.
+
+    Args:
+        datafile (str): Path to the NetCDF file containing the data.
+        tmin (float): Minimum time value to include.
+        tmax (float): Maximum time value to include.
+        nt_max (int): Maximum number of time steps to load.
+        zmin (float): Minimum z-coordinate value to include.
+        zmax (float): Maximum z-coordinate value to include.
+        nz_max (int): Maximum number of z slices to load.
+        nx_max (int, optional): Maximum number of x slices to load. If None, use all.
+        ny_max (int, optional): Maximum number of y slices to load. If None, use all.
+    Returns:
+        tuple: (xdim_filt, ydim_filt, zdim_filt, tdim_filt, u_data, v_data, w_data)
+            - xdim_filt (np.ndarray): Filtered x-dimension coordinates.
+            - ydim_filt (np.ndarray): Filtered y-dimension coordinates.
+            - zdim_filt (np.ndarray): Filtered z-dimension coordinates.
+            - tdim_filt (np.ndarray): Filtered time steps.
+            - u_data (np.ndarray): Filtered u-velocity field data.
+            - v_data (np.ndarray): Filtered v-velocity field data.
+            - w_data (np.ndarray): Filtered w-velocity field data.
+    Notes:
+        The function applies filtering and subsampling along the time, z, x, and y dimensions
+        according to the provided limits and maximums. The returned arrays are suitable for
+        use as ground truth fields in PINN evaluation or other post-processing tasks.
+    """
+
     data=nc.Dataset(datafile)
 
     xdim=data['xdim'][:]
@@ -113,7 +215,52 @@ def load_data(datafile, tmin, tmax, nt_max, zmin, zmax, nz_max, nx_max=None, ny_
 
     return xdim_filt, ydim_filt, zdim_filt, tdim_filt, u_data, v_data, w_data
 
-def evaluatePINN(predict, datafile, outputfile, tmin, tmax, nt_max, zmin, zmax, nz_max, nx_max=None, ny_max=None, z_plot=0, t_plot=0, **kwargs):
+
+def evaluatePINN(
+    predict: callable,
+    datafile: str,
+    outputfile: str,
+    tmin: float,
+    tmax: float,
+    nt_max: int,
+    zmin: float,
+    zmax: float,
+    nz_max: int,
+    nx_max: int = None,
+    ny_max: int = None,
+    z_plot: Union[float, List[float]] = 0,
+    t_plot: Union[float, List[float]] = 0,
+    **kwargs
+) -> None:
+    """
+    Evaluate a Physics-Informed Neural Network (PINN) model against ground truth data, compute error metrics, 
+    and generate diagnostic plots.
+
+    Args:
+        predict (callable): The PINN model's prediction function, which takes a tensor of input coordinates and returns predicted velocity components.
+        datafile (str): Path to the file containing ground truth data.
+        outputfile (str): Path to the output file where evaluation results will be written.
+        tmin (float): Minimum time value to consider from the data.
+        tmax (float): Maximum time value to consider from the data.
+        nt_max (int): Maximum number of time steps to load.
+        zmin (float): Minimum z-coordinate value to consider from the data.
+        zmax (float): Maximum z-coordinate value to consider from the data.
+        nz_max (int): Maximum number of z slices to load.
+        nx_max (int, optional): Maximum number of x grid points to load. Defaults to None (load all).
+        ny_max (int, optional): Maximum number of y grid points to load. Defaults to None (load all).
+        z_plot (float or list[float], optional): z-coordinate(s) at which to plot error fields. Defaults to 0.
+        t_plot (float or list[float], optional): Time(s) at which to plot error fields. Defaults to 0.
+        **kwargs: Additional keyword arguments to be logged in the output file.
+
+    Returns:
+        None
+
+    Side Effects:
+        - Writes evaluation metrics (MAE, RMSE, relative errors) to the specified output file.
+        - Saves error fields as a NumPy .npz file ("error_fields.npz").
+        - Generates and saves diagnostic plots for error fields at specified slices.
+    """
+
     file=open(outputfile, "w")
 
     file.write(time.ctime())
@@ -292,7 +439,30 @@ def evaluatePINN(predict, datafile, outputfile, tmin, tmax, nt_max, zmin, zmax, 
         
 
 
-def plotTruthXY(datafile, z, t):
+def plotTruthXY(
+    datafile: str, 
+    z: float, 
+    t: float
+) -> None:
+    """
+    Plots the true velocity field components from a NetCDF data file at a specified z and t location.
+
+    This function extracts the velocity components (u, v, w) from the given NetCDF file at the closest available
+    z and t indices to the provided values. It computes the velocity magnitude and generates two plots:
+    one showing the magnitude and u component, and another showing the v and w components, both as functions of x and y.
+
+    Args:
+        datafile (str): Path to the NetCDF data file containing the velocity field data.
+        z (float): The z-coordinate at which to extract and plot the data.
+        t (float): The time value at which to extract and plot the data.
+
+    Returns:
+        None: The function saves the generated plots to files and does not return any value.
+
+    Notes:
+        - The function assumes the NetCDF file contains variables 'xdim', 'ydim', 'zdim', 'tdim', 'u', 'v', and 'w'.
+        - The output plots are saved as PNG files with filenames indicating the z and t values.
+    """
     data=nc.Dataset(datafile)
 
     xdim=data['xdim'][:]

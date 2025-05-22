@@ -20,7 +20,7 @@ def empty() -> callable:
 
     return sampler
 
-def halfcylinder(center: Tuple[float, float, float], r: float, h: float, tmin: float, tmax: float) -> callable:
+def halfcylinder(center: Tuple[float, float, float], r: float, h: float, tmin: float, tmax: float) -> Callable[[int], np.ndarray]:
     """
     Generates a sampler function for a half-cylinder surface.
 
@@ -73,7 +73,7 @@ def halfcylinder(center: Tuple[float, float, float], r: float, h: float, tmin: f
 
     return sampler
 
-def duct(lb: Tuple[float, float, float, float], ub: Tuple[float, float, float, float]) -> callable:
+def duct(lb: Tuple[float, float, float, float], ub: Tuple[float, float, float, float]) -> Callable[[int], np.ndarray]:
     """
     Generates a sampler function for a duct surface (excluding the back wall).
 
@@ -128,7 +128,7 @@ def duct(lb: Tuple[float, float, float, float], ub: Tuple[float, float, float, f
 
     return sampler
 
-def wall(dim1: int, dim2: int, dim1_min: float, dim1_max: float, dim2_min: float, dim2_max: float, dim3_value: float, t_min: float, t_max: float) -> callable:
+def wall(dim1: int, dim2: int, dim1_min: float, dim1_max: float, dim2_min: float, dim2_max: float, dim3_value: float, t_min: float, t_max: float) -> Callable[[int], np.ndarray]:
     """
     Generates a sampler function for a wall surface in a 3D space with a fixed value for one dimension.
 

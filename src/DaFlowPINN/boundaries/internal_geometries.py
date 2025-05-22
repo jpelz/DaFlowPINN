@@ -1,6 +1,11 @@
 import numpy as np
+from typing import Callable, Tuple
 
-def halfcylinder_3d(r=0.125, dims=(0, 1), center=(0, 0)) -> callable:
+def halfcylinder_3d(
+    r: float = 0.125,
+    dims: Tuple[int, int] = (0, 1),
+    center: Tuple[float, float] = (0, 0)
+) -> Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray]:
     """
     Creates a function to check if points are inside a half-cylinder in 3D space.
     The halfcylinder is oriented in the negative direction of the first dimension.
@@ -12,8 +17,6 @@ def halfcylinder_3d(r=0.125, dims=(0, 1), center=(0, 0)) -> callable:
                       Dimensions can be 0, 1, or 2.
         center (tuple): Center coordinates of the half-cylinder.
     """
-
-    r = r
 
     def check_inside(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
         """
@@ -42,9 +45,8 @@ def halfcylinder_3d(r=0.125, dims=(0, 1), center=(0, 0)) -> callable:
         elif dims[1] == 2:
             y_ = z - center[1]
     
-        
-
-        inside = ((x_**2 + y_**2) < r**2) & (x_ < 0)  # Check if inside the half-cylinder
+        # Check if the points are inside the half-cylinder
+        inside = ((x_**2 + y_**2) < r**2) & (x_ < 0)
         return inside.astype(bool)
 
     return check_inside

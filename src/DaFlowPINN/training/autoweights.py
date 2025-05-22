@@ -1,103 +1,124 @@
 import torch
-from typing import List, Literal, Optional, Sequence, Union
+from typing import List, Optional
   
 
 
 class WeightUpdater:
-    def __init__(self, scheme = 3, alpha = 0.9, device = "cuda"):
-        self.device = device
-        self.scheme = scheme
-        self.alpha = alpha
+  """
+  Class for updating loss weights in PINN training using various auto-weighting schemes.
+  """
 
-    def update(self, current_weights: List[float], grads: List[float]):
+  def __init__(self, scheme: Optional[int] = 3, alpha: float = 0.9, device: str = "cuda") -> None:
+    """
+    Initialize the WeightUpdater.
 
-        if len(current_weights) != len(grads):
-            raise ValueError("Weights and gradient must have the same length.")
+    Args:
+      scheme (Optional[int]): The weighting scheme to use.
+        - 1: ConflictFree
+        - 2: Wang 2023
+        - 3: Wang 2021 (Data loss weight is set to 1)
+        - 4: Wang 2021 (PDE weight is set to 1)
+        - None: No Auto Weights
+      alpha (float): Smoothing parameter for weight updates.
+      device (str): Device for tensor operations.
+    """
+    self.device = device
+    self.scheme = scheme
+    self.alpha = alpha
 
-        new_weights = []
-        
-        if self.scheme == 1 or self.scheme == None:
-            # ConflictFree or no Auto Weights
-            new_weights = current_weights
+  def update(
+    self,
+    current_weights: List[float],
+    grads: List[torch.Tensor]
+  ) -> List[torch.Tensor]:
+    """
+    Update the weights according to the selected scheme.
 
-        elif self.scheme == 2:
-            # Source:  Wang - 2023 arXiv:2308.08468v1
+    Args:
+      current_weights (List[float]): Current weights for each loss term.
+      grads (List[torch.Tensor]): Gradients for each loss term.
 
-            grad_norms = []
-            for i in range(len(grads)):
-              grad_norms.append(grads[i].norm())
-              
-            for i in range(len(current_weights)):
-                new_weights.append(sum(grad_norms)/grad_norms[i])
+    Returns:
+      List[torch.Tensor]: Updated weights.
+    """
+    if len(current_weights) != len(grads):
+      raise ValueError("Weights and gradient must have the same length.")
 
-            max_weight = max(new_weights)
+    new_weights: List[torch.Tensor] = []
 
-            for i in range(len(current_weights)):
-              new_weights[i] = self.alpha * current_weights[i] + (1-self.alpha) * new_weights[i] #/ max_weight
+    if self.scheme == 1 or self.scheme is None:
+      # ConflictFree or no Auto Weights
+      new_weights = current_weights
 
-        elif self.scheme == 3:
-            # Source: Wang 2021 - https://epubs.siam.org/doi/epdf/10.1137/20M1318043 - PDE weight is 1"
+    elif self.scheme == 2:
+      # Source: Wang et al. - 2023 arXiv:2308.08468v1
+      grad_norms: List[torch.Tensor] = [g.norm() for g in grads]
+      for i in range(len(current_weights)):
+        new_weights.append(sum(grad_norms) / grad_norms[i])
 
-            # --> Modified so data loss is 1
-            
-            #Data weight
-            new_weights.append(torch.tensor(1, device=self.device).float())
+      # Optionally normalize by max_weight (commented out)
+      # max_weight = max(new_weights)
+      for i in range(len(current_weights)):
+        new_weights[i] = self.alpha * current_weights[i] + (1 - self.alpha) * new_weights[i]
 
-            if len(current_weights) == 3:
-              #BC weight
-              lambda_bc = torch.mean(torch.abs(grads[0])) / torch.mean(torch.abs(grads[1]))
-              new_weights.append(self.alpha * current_weights[1] + (1-self.alpha) * lambda_bc)
+    elif self.scheme == 3:
+      # Source: Wang et al. 2021 - https://epubs.siam.org/doi/epdf/10.1137/20M1318043
+      # Modified so Data loss weight is set to 1
+      new_weights.append(torch.tensor(1, device=self.device).float())
 
-            #NS weight
-            lambda_ns = torch.mean(torch.abs(grads[0])) / torch.abs(grads[-1]).max()
-            new_weights.append(self.alpha * current_weights[-1] + (1-self.alpha) * lambda_ns)
+      if len(current_weights) == 3:
+        # BC weight
+        lambda_bc = torch.mean(torch.abs(grads[0])) / torch.mean(torch.abs(grads[1]))
+        new_weights.append(self.alpha * current_weights[1] + (1 - self.alpha) * lambda_bc)
 
+      # NS weight
+      lambda_ns = torch.mean(torch.abs(grads[0])) / torch.abs(grads[-1]).max()
+      new_weights.append(self.alpha * current_weights[-1] + (1 - self.alpha) * lambda_ns)
 
-            #Original:
-            # for i in range(len(current_weights)-1):
-            #     lambda_i = torch.abs(pde_weight).max() / torch.mean(torch.abs(current_weights[i]*grads[i]))
-            #     new_weights.append(self.alpha * current_weights[i] + (1-self.alpha) * lambda_i)
+    elif self.scheme == 4:
+      # Source: Wang et al. 2021 (original) - PDE weight is 1
+      lambda_data = torch.abs(grads[-1]).max() / torch.mean(torch.abs(grads[0]))
+      new_weights.append(self.alpha * current_weights[0] + (1 - self.alpha) * lambda_data)
 
-            #new_weights.append(torch.tensor(1, device=self.device).float())
+      if len(current_weights) == 3:
+        # BC weight
+        lambda_bc = torch.abs(grads[-1]).max() / torch.mean(torch.abs(grads[1]))
+        new_weights.append(self.alpha * current_weights[1] + (1 - self.alpha) * lambda_bc)
 
+      # NS weight is set to 1
+      new_weights.append(torch.tensor(1, device=self.device).float())
 
-        elif self.scheme == 4:
-            # Source: Wang 2021 - https://epubs.siam.org/doi/epdf/10.1137/20M1318043 - PDE weight is 1"
+    else:
+      raise ValueError("Invalid auto weight type.")
 
-            # --> Original:
-            
-            #Data weight
-            lambda_data = torch.abs(grads[-1]).max() / torch.mean(torch.abs(grads[0]))
-            new_weights.append(self.alpha * current_weights[0] + (1-self.alpha) * lambda_data)
+    return new_weights
 
-            if len(current_weights) == 3:
-              #BC weight
-              lambda_bc = torch.abs(grads[-1]).max() / torch.mean(torch.abs(grads[1]))
-              new_weights.append(self.alpha * current_weights[1] + (1-self.alpha) * lambda_bc)
+  def new_grads(
+    self,
+    weights: List[float],
+    grads: List[torch.Tensor]
+  ) -> torch.Tensor:
+    """
+    Compute the new weighted gradients.
 
-            #NS weight
-            new_weights.append(torch.tensor(1, device=self.device).float())
+    Args:
+      weights (List[float]): Weights for each loss term.
+      grads (List[torch.Tensor]): Gradients for each loss term.
 
+    Returns:
+      torch.Tensor: Weighted sum of gradients.
+    """
+    if self.scheme == 1:
+      # Use ConFIG for ConflictFree gradient aggregation
+      # Requires: pip install conflictfree
+      from conflictfree.grad_operator import ConFIG_update
+      new_grads = ConFIG_update(grads)
+    else:
+      grads_stacked = torch.stack(grads)
+      weight_mat = torch.tensor(weights, device=self.device).float()
+      new_grads = grads_stacked.T @ weight_mat
 
-        else:
-            raise ValueError("Invalid auto weight type.")
-
-        return new_weights
-    
-    def new_grads(self, weights: List[float], grads: List[float]):
-        if self.scheme == 0:
-            #See https://tum-pbs.github.io/ConFIG/
-            #needs pip install conflictfree
-
-            from conflictfree.grad_operator import ConFIG_update
-            new_grads = ConFIG_update(grads)
-
-        else:
-            grads = torch.stack(grads)
-            weight_mat = torch.tensor(weights, device=self.device).float()
-            new_grads = grads.T @ weight_mat
-
-        return new_grads
+    return new_grads
 
 
 

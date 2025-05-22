@@ -1,6 +1,9 @@
 import torch
 from typing import Literal
 
+# Originally from https://github.com/tum-pbs/ConFIG/ (© 2024 TUM Physics-based Simulation, MIT License)
+# Modifications: `get_gradient_vector()` modified to return a flat vector on demand → used by LBFGS-optimizer.
+
 def get_para_vector(network: torch.nn.Module) -> torch.Tensor:
     """
     Returns the parameter vector of the given network.

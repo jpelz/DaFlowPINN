@@ -5,8 +5,6 @@ import contextlib
 import shutil
 from datetime import datetime
 
-
-
 class Config:
     """
     The Config class is responsible for managing the configuration settings for a Physics-Informed Neural Network (PINN) setup. 
@@ -68,10 +66,10 @@ class Config:
 
         if conf_file is not None:
             self._conf_file = conf_file
-            self._conf_dict = self._load_config(self._conf_file)
+            self._conf_dict = self.__load_config(self._conf_file)
             self._unpack(self._conf_dict)
 
-    def _load_config(self, conf: str) -> dict:
+    def __load_config(self, conf: str) -> dict:
         """
         Load configuration file and merge with standard config.
 
@@ -88,14 +86,14 @@ class Config:
             if user_config['base_config'] == "standard":
                 base_config = self.standard
             else:
-                base_config = self._load_config(user_config['base_config'])
-            config = self._update_config(base_config, user_config)
+                base_config = self.__load_config(user_config['base_config'])
+            config = self.__update_config(base_config, user_config)
         else:
             config = user_config
 
         return config
 
-    def _update_config(self, base_config: dict, new_config: dict) -> dict:
+    def __update_config(self, base_config: dict, new_config: dict) -> dict:
         """
         Update the base configuration with loaded values.
 
@@ -105,7 +103,7 @@ class Config:
         """
         for key, value in new_config.items():
             if isinstance(value, dict) and key in base_config:
-                self._update_config(base_config[key], value)
+                self.__update_config(base_config[key], value)
             else:
                 base_config[key] = value
 
@@ -129,6 +127,25 @@ class Config:
                 setattr(self, new_key, value)
 
     def run(self, PINN_Setup: callable, print_to_log: bool = True, *args, **kwargs):
+        """
+        Executes the PINN (Physics-Informed Neural Network) setup, optionally performing a parameter sweep.
+
+        This method either runs a single experiment or performs a sweep over specified configuration parameters.
+        If parameter sweeps are defined (as lists in the configuration), it iterates over all combinations,
+        creating a separate directory and log file for each run. Otherwise, it runs a single experiment.
+
+        Args:
+            PINN_Setup (callable): The function to execute for each experiment, which takes the configuration as its first argument.
+            print_to_log (bool, optional): If True, redirects stdout to a log file for each run. Defaults to True.
+            *args: Additional positional arguments to pass to PINN_Setup.
+            **kwargs: Additional keyword arguments to pass to PINN_Setup.
+
+        Notes:
+            - Parameter sweeps are detected as list attributes in the configuration (excluding those containing 'validation' in their name).
+            - Each run is executed in its own directory, named after the experiment and sweep index.
+            - Log files are created with timestamps if print_to_log is True.
+            - The working directory is restored after each run.
+        """
         def find_sweep_params(obj, prefix=""):
             sweep_params = {}
             for key, value in obj.__dict__.items():
@@ -187,9 +204,19 @@ class Config:
 
         
 
-
+#Alternative decorator for running the PINN setup with a configuration file
 
 def main(conf_file: str, print_to_log: bool = True):
+    """
+    Decorator to run a function with a configuration file.
+    
+    Use:
+        @main(conf_file='path/to/config.yaml')
+        def PINN_Setup(conf, *args, **kwargs):
+            # Your PINN setup code here
+            ...
+    """
+
     def decorator(PINN_Setup):
         def wrapper(*args, **kwargs):
             conf = Config(conf_file)

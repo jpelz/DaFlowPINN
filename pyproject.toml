@@ -27,7 +27,8 @@ dependencies = [
     "netcdf4",
     "pandas",
     "vtk",
-    "conflictfree"
+    "conflictfree",
+    "pyyaml"
 ]
 
 [tool.setuptools]

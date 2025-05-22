@@ -1,10 +1,10 @@
 __pycache__/
-build/lib/
-build/bd*
+build/
 docs/api/
 docs/source/
 docs/make.bat
 docs/Makefile
+
 
 *.egg
 *.egg-info/

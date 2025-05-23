@@ -2,6 +2,8 @@ __pycache__/
 build/lib/
 build/bdist*
 
+sphinx/
+
 
 *.egg
 *.egg-info/

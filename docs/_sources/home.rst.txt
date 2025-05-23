@@ -1,2 +1,31 @@
 .. include:: ../../README.md
    :parser: myst_parser.sphinx_
+   :end-before: <!-- End Description -->
+
+
+
+.. list-table::
+   :widths: 20 80
+   :header-rows: 1
+   :stub-columns: 1
+   :name: Contents
+
+   * - Module
+     - Description
+   * - :doc:`boundaries <generated/DaFlowPINN.boundaries>`
+     - Boundary handling (surface samplers, internal geometries, approximate distance functions)
+   * - :doc:`config <generated/DaFlowPINN.config>`
+     - Work with configuration files and do parameter sweeps
+   * - :doc:`model <generated/DaFlowPINN.model>`
+     - Core model definitions and architectures
+   * - :doc:`post <generated/DaFlowPINN.post>`
+     - Plotting, error calculation, and export utilities
+   * - :doc:`training <generated/DaFlowPINN.training>`
+     - Optimizers, schedulers, loss functions, and autoweighting
+
+
+
+.. include:: ../../README.md
+   :parser: myst_parser.sphinx_
+   :start-after: <!-- Start Features -->
+

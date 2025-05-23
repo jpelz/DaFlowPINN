@@ -23,6 +23,8 @@ def abs_mae(Y_pred: Union[torch.Tensor, np.ndarray], Y_true: Union[torch.Tensor,
         Y_pred = torch.tensor(Y_pred, requires_grad=False)
     if not isinstance(Y_true, torch.Tensor):
         Y_true = torch.tensor(Y_true, requires_grad=False)
+    return torch.nanmean(torch.abs(Y_pred - Y_true)).item()
+    
 
 def rel_mae(Y_pred: Union[torch.Tensor, np.ndarray], Y_true: Union[torch.Tensor, np.ndarray]) -> float:
     """
@@ -309,7 +311,7 @@ def evaluatePINN(
 
 
     #Predict
-    t_grid,z_grid,y_grid,x_grid=np.meshgrid(tdim,zdim, ydim, xdim)
+    z_grid,t_grid,y_grid,x_grid=np.meshgrid(zdim,tdim,ydim, xdim)
 
     X=torch.from_numpy(np.transpose(np.vstack((x_grid.ravel(),y_grid.ravel(),z_grid.ravel(),t_grid.ravel()))))
     del (z_grid,y_grid,x_grid,t_grid)

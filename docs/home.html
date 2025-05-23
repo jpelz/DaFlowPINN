@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="DaFlowPINN package" href="generated/DaFlowPINN.html" /><link rel="prev" title="DaFlowPINN" href="index.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="DaFlowPINN.boundaries package" href="generated/DaFlowPINN.boundaries.html" /><link rel="prev" title="DaFlowPINN" href="index.html" />
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2024.08.06 -->
         <title>DaFlowPINN - DaFlowPINNs documentation</title>
@@ -178,7 +178,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -199,16 +199,22 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Home</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="generated/DaFlowPINN.html">Documentation</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="generated/DaFlowPINN.boundaries.html">DaFlowPINN.boundaries package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="generated/DaFlowPINN.config.html">DaFlowPINN.config package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="generated/DaFlowPINN.model.html">DaFlowPINN.model package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="generated/DaFlowPINN.post.html">DaFlowPINN.post package</a></li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="generated/DaFlowPINN.training.html">DaFlowPINN.training package</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of DaFlowPINN.training package</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="generated/DaFlowPINN.training.optim.html">DaFlowPINN.training.optim package</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">DaFlowPINN</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#features">🚀 Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#installation">🛠 Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#examples">📂 Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#usage">📚 Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#license">📄 License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#references">References</a></li>
 </ul>
-</li>
+<p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="generated/DaFlowPINN.boundaries.html">DaFlowPINN.boundaries package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/DaFlowPINN.config.html">DaFlowPINN.config package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/DaFlowPINN.model.html">DaFlowPINN.model package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generated/DaFlowPINN.post.html">DaFlowPINN.post package</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="generated/DaFlowPINN.training.html">DaFlowPINN.training package</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of DaFlowPINN.training package</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="generated/DaFlowPINN.training.optim.html">DaFlowPINN.training.optim package</a></li>
 </ul>
 </li>
 </ul>
@@ -245,7 +251,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
@@ -255,26 +261,40 @@
 <h1>DaFlowPINN<a class="headerlink" href="#daflowpinn" title="Link to this heading">¶</a></h1>
 <!-- Start Description -->
 <p><strong>DaFlowPINN</strong> is a modular and extensible Python framework for building and training Physics-Informed Neural Networks (PINNs) for data assimilation of incompressible, time-dependend 3D fluid flows. It is primaly developed for postprocessing of Particle Tracking Velocimetry (PTV) data during a master’s thesis. It includes components for model definition, training customization, boundary condition handling, and postprocessing utilities.</p>
-<hr class="docutils" />
-<!-- End Description -->
-<section id="project-structure">
-<h2>📦 Project Structure<a class="headerlink" href="#project-structure" title="Link to this heading">¶</a></h2>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>
-DaFlowPINN/
-├── boundaries/          # Define boundary conditions and samplers
-├── post/                # Postprocessing: evaluation, plotting, export
-├── model/               # Core model architecture and PINN logic
-├── training/            # Training loop, loss functions, optimizers
-│   └── optim/           # Custom optimizers and learning rate schedulers
-├── config/              # Configuration management
-
-</pre></div>
-</div>
-<hr class="docutils" />
-<!-- Start Features -->
 </section>
+<hr class="docutils" />
+<div class="table-wrapper colwidths-given docutils container" id="contents">
+<table class="docutils align-default" id="contents">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 80.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head stub"><p>Module</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><th class="stub"><p><a class="reference internal" href="generated/DaFlowPINN.boundaries.html"><span class="doc">boundaries</span></a></p></th>
+<td><p>Boundary handling (surface samplers, internal geometries, approximate distance functions)</p></td>
+</tr>
+<tr class="row-odd"><th class="stub"><p><a class="reference internal" href="generated/DaFlowPINN.config.html"><span class="doc">config</span></a></p></th>
+<td><p>Work with configuration files and do parameter sweeps</p></td>
+</tr>
+<tr class="row-even"><th class="stub"><p><a class="reference internal" href="generated/DaFlowPINN.model.html"><span class="doc">model</span></a></p></th>
+<td><p>Core model definitions and architectures</p></td>
+</tr>
+<tr class="row-odd"><th class="stub"><p><a class="reference internal" href="generated/DaFlowPINN.post.html"><span class="doc">post</span></a></p></th>
+<td><p>Plotting, error calculation, and export utilities</p></td>
+</tr>
+<tr class="row-even"><th class="stub"><p><a class="reference internal" href="generated/DaFlowPINN.training.html"><span class="doc">training</span></a></p></th>
+<td><p>Optimizers, schedulers, loss functions, and autoweighting</p></td>
+</tr>
+</tbody>
+</table>
+</div>
 <section id="features">
-<h2>🚀 Features<a class="headerlink" href="#features" title="Link to this heading">¶</a></h2>
+<h1>🚀 Features<a class="headerlink" href="#features" title="Link to this heading">¶</a></h1>
 <ul class="simple">
 <li><p><strong>Modular Architecture</strong>: Swap in/out different architectures.</p></li>
 <li><p><strong>Parameterizable</strong>: Configure the PINN using .yaml-files and run parameter sweeps to compare different settings.</p></li>
@@ -283,19 +303,19 @@ DaFlowPINN/
 <li><p><strong>Postprocessing Utilities</strong>: Evaluate and visualize model results during training.</p></li>
 <li><p><strong>Example Scripts</strong>: Jump-start your experiments using <code class="docutils literal notranslate"><span class="pre">examples/basic_example.py</span></code>.</p></li>
 </ul>
-</section>
 <hr class="docutils" />
+</section>
 <section id="installation">
-<h2>🛠 Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
+<h1>🛠 Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h1>
 <p>For example in <a class="reference external" href="http://colab.research.google.com/">Google Colab</a>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>!git<span class="w"> </span>clone<span class="w"> </span>https://github.com/jpelz/DaFlowPINN.git
 !pip<span class="w"> </span>install<span class="w"> </span>DaFlowPINN
 </pre></div>
 </div>
-</section>
 <hr class="docutils" />
+</section>
 <section id="examples">
-<h2>📂 Examples<a class="headerlink" href="#examples" title="Link to this heading">¶</a></h2>
+<h1>📂 Examples<a class="headerlink" href="#examples" title="Link to this heading">¶</a></h1>
 <p>For showcasing the usage of the Framework, the PINN is used for Data Assimilation of a virtual Particle Tracking Velocimetry (PTV) Measurement. The particles where seeded into a DNS-Simulation of the flow around a halfcylinder [1] at Re = 640.</p>
 <p>Run basic example:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>DaFlowPINN/examples/basic_example.py
@@ -312,10 +332,10 @@ DaFlowPINN/
 <li><p>hbc_config.yaml (PINN with forced exact boundary conditions using approximate distance functions)</p></li>
 </ul>
 <p>To change the seeding density, epochs, optimizer,… edit the *.yaml files or create your own.</p>
-</section>
 <hr class="docutils" />
+</section>
 <section id="usage">
-<h2>📚 Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
+<h1>📚 Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h1>
 <p>Here’s a minimal example of how to import and use core components:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">DaFlowPINN</span><span class="w"> </span><span class="kn">import</span> <span class="n">PINN_3D</span>
@@ -359,17 +379,16 @@ The trained PINN is saved in <code class="docutils literal notranslate"><span cl
 
 </pre></div>
 </div>
-</section>
 <hr class="docutils" />
+</section>
 <section id="license">
-<h2>📄 License<a class="headerlink" href="#license" title="Link to this heading">¶</a></h2>
+<h1>📄 License<a class="headerlink" href="#license" title="Link to this heading">¶</a></h1>
 <p>MIT License. See <code class="docutils literal notranslate"><span class="pre">LICENSE</span></code> file for details.</p>
-</section>
 <hr class="docutils" />
-<section id="references">
-<h2>References<a class="headerlink" href="#references" title="Link to this heading">¶</a></h2>
-<p>[1] https://cgl.ethz.ch/research/visualization/data.php</p>
 </section>
+<section id="references">
+<h1>References<a class="headerlink" href="#references" title="Link to this heading">¶</a></h1>
+<p>[1] https://cgl.ethz.ch/research/visualization/data.php</p>
 </section>
 
         </article>
@@ -377,12 +396,12 @@ The trained PINN is saved in <code class="docutils literal notranslate"><span cl
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="generated/DaFlowPINN.html">
+          <a class="next-page" href="generated/DaFlowPINN.boundaries.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">DaFlowPINN package</div>
+                <div class="title">DaFlowPINN.boundaries package</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -415,33 +434,8 @@ The trained PINN is saved in <code class="docutils literal notranslate"><span cl
         
       </footer>
     </div>
-    <aside class="toc-drawer">
+    <aside class="toc-drawer no-toc">
       
-      
-      <div class="toc-sticky toc-scroll">
-        <div class="toc-title-container">
-          <span class="toc-title">
-            On this page
-          </span>
-        </div>
-        <div class="toc-tree-container">
-          <div class="toc-tree">
-            <ul>
-<li><a class="reference internal" href="#">DaFlowPINN</a><ul>
-<li><a class="reference internal" href="#project-structure">📦 Project Structure</a></li>
-<li><a class="reference internal" href="#features">🚀 Features</a></li>
-<li><a class="reference internal" href="#installation">🛠 Installation</a></li>
-<li><a class="reference internal" href="#examples">📂 Examples</a></li>
-<li><a class="reference internal" href="#usage">📚 Usage</a></li>
-<li><a class="reference internal" href="#license">📄 License</a></li>
-<li><a class="reference internal" href="#references">References</a></li>
-</ul>
-</li>
-</ul>
-
-          </div>
-        </div>
-      </div>
       
       
     </aside>

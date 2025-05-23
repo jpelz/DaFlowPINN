@@ -81,6 +81,7 @@ def physics_loss(
 ) -> torch.Tensor:
     """
     Computes the physics-informed loss for the Navier-Stokes equations using a PINN model.
+
     Args:
       model (torch.nn.Module): The neural network model that predicts velocity and pressure fields.
       X (torch.Tensor): Input tensor of shape (N, 4), where columns represent (x, y, z, t) coordinates.
@@ -88,6 +89,7 @@ def physics_loss(
       normalize (callable): Function to normalize input data.
       denormalize (callable): Function to denormalize model outputs.
       return_min_max_p (bool, optional): If True, also returns the minimum and maximum predicted pressure values. Defaults to False.
+    
     Returns:
       torch.Tensor: The computed physics-informed loss (scalar).
       If return_min_max_p is True, returns a tuple:
@@ -194,8 +196,10 @@ def physics_loss(
       return loss, max(result[:,3]).detach(), min(result[:,3]).detach()
 
 def numerical_physics_loss(model, X, Re, dx, dy, dz, dt, denormalize: callable = None):
-    # n-PINNs as in Chiu et al. 2022 - https://doi.org/10.1016/j.cma.2022.114909
-    # Coupling with AD is missing yet
+    """
+    n-PINNs as in Chiu et al. 2022 - https://doi.org/10.1016/j.cma.2022.114909
+    Coupling with AD is missing yet
+    """
 
     pred = model(X)
     

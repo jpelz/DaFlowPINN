@@ -7,6 +7,8 @@ import time
 from typing import Union, List, Tuple
 
 from .plot import plotField, plotField2
+import vtk
+from vtkmodules.util import numpy_support
 
 def abs_mae(Y_pred: Union[torch.Tensor, np.ndarray], Y_true: Union[torch.Tensor, np.ndarray]) -> float:
     """
@@ -365,6 +367,61 @@ def evaluatePINN(
 
     np.savez("error_fields.npz", u_error=u_error, v_error=v_error, w_error=w_error, mag_error=mag_error,
              u_grad_error=u_grad_error, v_grad_error=v_grad_error, w_grad_error=w_grad_error)
+
+    # Save separate VTI files for each time slice using VTK
+
+    # error fields shape: (nt, nz, ny, nx)
+    nt, nz, ny, nx = u_error.shape
+
+    def to_vtk_order(arr):
+        # arr shape: (nz, ny, nx) -> (nx, ny, nz)
+        return np.ascontiguousarray(np.transpose(arr, (2,1,0)))
+
+    # Compute cell sizes
+    dx = (xdim[1] - xdim[0]) if len(xdim) > 1 else 1.0
+    dy = (ydim[1] - ydim[0]) if len(ydim) > 1 else 1.0
+    dz = (zdim[1] - zdim[0]) if len(zdim) > 1 else 1.0
+
+    # Compute grid origin so that xdim, ydim, zdim are cell centers
+    origin_x = xdim[0] - dx / 2
+    origin_y = ydim[0] - dy / 2
+    origin_z = zdim[0] - dz / 2
+
+    for t_idx in range(nt):
+        # Extract error fields for this time slice
+        u_err = u_error[t_idx]
+        v_err = v_error[t_idx]
+        w_err = w_error[t_idx]
+        mag_err = mag_error[t_idx]
+        u_grad_err = u_grad_error[t_idx]
+        v_grad_err = v_grad_error[t_idx]
+        w_grad_err = w_grad_error[t_idx]
+
+        # Create vtkImageData for this time slice
+        image = vtk.vtkImageData()
+        image.SetDimensions(nx, ny, nz)
+        image.SetOrigin(origin_x, origin_y, origin_z)
+        image.SetSpacing(dx, dy, dz)
+
+        def add_array(image, arr, name):
+            vtk_arr = numpy_support.numpy_to_vtk(num_array=to_vtk_order(arr).ravel(order="F"), deep=True)
+            vtk_arr.SetName(name)
+            image.GetPointData().AddArray(vtk_arr)
+
+        add_array(image, u_err, "u_error")
+        add_array(image, v_err, "v_error")
+        add_array(image, w_err, "w_error")
+        add_array(image, mag_err, "mag_error")
+        add_array(image, u_grad_err, "u_grad_error")
+        add_array(image, v_grad_err, "v_grad_error")
+        add_array(image, w_grad_err, "w_grad_error")
+
+        # Write to VTI file
+        writer = vtk.vtkXMLImageDataWriter()
+        writer.SetFileName(f"error_fields_t{t_idx:03d}.vti")
+        writer.SetInputData(image)
+        writer.Write()
+
 
     #MAE
     mae_u = abs_mae(u_pred.ravel(), u.ravel())

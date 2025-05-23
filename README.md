@@ -60,7 +60,7 @@ python DaFlowPINN/examples/basic_example.py
 Run example with configuration files:
 
 ```bash
-python DAFlowPINN/examples/config_example.py DaFlowPINN/examples/basic_config.yaml
+python DaFlowPINN/examples/config_example.py DaFlowPINN/examples/basic_config.yaml
 ```
 
 Available configurations (all with 10k particles per timestep):

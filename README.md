@@ -80,6 +80,8 @@ Here’s a minimal example of how to import and use core components:
 import numpy as np
 from DaFlowPINN import PINN_3D
 from DaFlowPINN.model.architectures import FCN
+from DaFlowPINN.boundaries import surface_samplers
+from DaFlowPINN.boundaries.internal_geometries import halfcylinder_3d
 
 #Define a PINN using a fully connected network (Re not relevant when no physics points)
 
@@ -91,16 +93,23 @@ lb=[-0.5, -1.5, -0.5, 14.5] #Lower bound of the domain (x, y, z, t)
 ub=[7.5, 1.5, 0.5, 15.0] #Upper bound of the domain (x, y, z, t)
 PINN.define_domain(lb, ub)
 
-#Add training data
+#Add training data (has to be np.ndarray with the columns #ID,X,Y,Z,T,U,V,W)
 data = np.load("DaFlowPINN/examples/datasets/halfylinder_Re640/HalfcylinderTracks_p010_t14.5-15.dat", delimiter=" ")
 PINN.add_data_points(data)
 
+#Add Boundary Points:
+sampler=surface_samplers.halfcylinder(center=[0,0,0], r=0.125, h=1, tmin=lb[3], tmax=ub[3])
+PINN.add_boundary_condition(sampler, N_BC_POINTS=4096)
+
+#Add Physics Points:
+PINN.add_physics_points(N_COLLOCATION=8192, batch_size=1024, geometry=halfcylinder_3d(r=0.125))
+
 
 #Select optimizer
-PINN.add_optimizer("adam", lr=1e-3)
+PINN.add_optimizer("adam", lr=1e-4)
 
-#Add plot
-PINN.add_2D_plot(component1=0, component2=None,
+#Add XY plot of velocity magnitude and pressure
+PINN.add_2D_plot(component1=0, component2=4,
                  plot_dims=[0,1], dim3_slice=0, t_slice=14.75, resolution=[640, 240])
 
 PINN.train(epochs=1000, print_freq=100, plot_freq=500)
@@ -113,11 +122,11 @@ The trained PINN is saved in `*_predictable.pt` and can be used as follows:
 import torch
 from DaFlowPINN.model.core import load_predictable
 
-pinn_prediction = load_predictable("example_predictable.pt")
+PINN_trained = load_predictable("example_predictable.pt")
 
 X = torch.tensor([2, 1, 0.2, 14.7]) #X,Y,Z,T
 
-Y = pinn_prediction(X)
+Y = PINN_trained(X)
 
 ```
 

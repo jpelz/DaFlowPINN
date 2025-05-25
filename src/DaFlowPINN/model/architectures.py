@@ -77,8 +77,8 @@ class HardBC(nn.Module):
     def forward(self, x, x0):
         self.offset= nn.Parameter(self.offset.to(x.device), requires_grad=False)
         sdf_values=torch.maximum(self.bc_fun(x0),torch.tensor(0, device=x0.device))
-        l=torch.stack((sdf_values, sdf_values, sdf_values,(1+max(sdf_values)-sdf_values)),dim=1) #stack to multiply u,v,w --> p*1    torch.ones_like(sdf_values)
-        x = x*l+(1-l)*self.offset 
+        l=torch.stack((sdf_values, sdf_values, sdf_values,torch.ones_like(sdf_values)),dim=1) #stack to multiply u,v,w --> p*1
+        x = x*l+self.offset
         return x
 
 

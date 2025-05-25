@@ -327,8 +327,6 @@ def plotPINN_2D(
     X[:, 3] = t_slice * np.ones_like(x.ravel())
 
     X = torch.tensor(X).float()
-
-    X.requires_grad = True
     Y = predict(X)
 
     def get_field(component, xdim, ydim, Y):

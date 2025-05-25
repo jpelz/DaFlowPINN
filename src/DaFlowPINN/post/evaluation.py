@@ -287,29 +287,33 @@ def evaluatePINN(
         u_grad_true_t = np.gradient(u, dt, axis=0)
         v_grad_true_t = np.gradient(v, dt, axis=0)
         w_grad_true_t = np.gradient(w, dt, axis=0)
+        mag_grad_true_t = np.gradient(mag_true, dt, axis=0)
     else:
-        u_grad_true_t = v_grad_true_t = w_grad_true_t = 0
+        u_grad_true_t = v_grad_true_t = w_grad_true_t = mag_grad_true_t = 0
 
     if len(zdim) > 1:
         u_grad_true_z = np.gradient(u, dz, axis=1)
         v_grad_true_z = np.gradient(v, dz, axis=1)
         w_grad_true_z = np.gradient(w, dz, axis=1)
+        mag_grad_true_z = np.gradient(mag_true, dz, axis=1)
     else:
-        u_grad_true_z = v_grad_true_z = w_grad_true_z = 0
+        u_grad_true_z = v_grad_true_z = w_grad_true_z = mag_grad_true_z = 0
 
     u_grad_true_y = np.gradient(u, dy, axis=2)
     v_grad_true_y = np.gradient(v, dy, axis=2)
     w_grad_true_y = np.gradient(w, dy, axis=2)
+    mag_grad_true_y = np.gradient(mag_true, dy, axis=2)
 
     u_grad_true_x = np.gradient(u, dx, axis=3)
     v_grad_true_x = np.gradient(v, dx, axis=3)
     w_grad_true_x = np.gradient(w, dx, axis=3)
+    mag_grad_true_x = np.gradient(mag_true, dx, axis=3)
 
-    u_grad_true = np.sqrt(u_grad_true_t**2 + u_grad_true_z**2 + u_grad_true_y**2 + u_grad_true_x**2)
-    v_grad_true = np.sqrt(v_grad_true_t**2 + v_grad_true_z**2 + v_grad_true_y**2 + v_grad_true_x**2)
-    w_grad_true = np.sqrt(w_grad_true_t**2 + w_grad_true_z**2 + w_grad_true_y**2 + w_grad_true_x**2)
+    u_grad_true = np.sqrt(u_grad_true_z**2 + u_grad_true_y**2 + u_grad_true_x**2)
+    v_grad_true = np.sqrt(v_grad_true_z**2 + v_grad_true_y**2 + v_grad_true_x**2)
+    w_grad_true = np.sqrt(w_grad_true_z**2 + w_grad_true_y**2 + w_grad_true_x**2)
 
-    del(u_grad_true_t, v_grad_true_t, w_grad_true_t, u_grad_true_z, v_grad_true_z, w_grad_true_z, u_grad_true_y, v_grad_true_y, w_grad_true_y, u_grad_true_x, v_grad_true_x, w_grad_true_x)
+    del(u_grad_true_z, v_grad_true_z, w_grad_true_z, u_grad_true_y, v_grad_true_y, w_grad_true_y, u_grad_true_x, v_grad_true_x, w_grad_true_x)
 
 
     #Predict
@@ -332,29 +336,34 @@ def evaluatePINN(
         u_grad_pred_t = np.gradient(u_pred, dt, axis=0)
         v_grad_pred_t = np.gradient(v_pred, dt, axis=0)
         w_grad_pred_t = np.gradient(w_pred, dt, axis=0)
+        mag_grad_pred_t = np.gradient(mag_pred, dt, axis=0)
     else:
-        u_grad_pred_t = v_grad_pred_t = w_grad_pred_t = 0
+        u_grad_pred_t = v_grad_pred_t = w_grad_pred_t = mag_grad_pred_t = 0
 
     if len(zdim) > 1:
         u_grad_pred_z = np.gradient(u_pred, dz, axis=1)
         v_grad_pred_z = np.gradient(v_pred, dz, axis=1)
         w_grad_pred_z = np.gradient(w_pred, dz, axis=1)
+        mag_grad_pred_z = np.gradient(mag_pred, dz, axis=1)
     else:
-        u_grad_pred_z = v_grad_pred_z = w_grad_pred_z = 0
+        u_grad_pred_z = v_grad_pred_z = w_grad_pred_z = mag_grad_pred_z = 0
 
     u_grad_pred_y = np.gradient(u_pred, dy, axis=2)
     v_grad_pred_y = np.gradient(v_pred, dy, axis=2)
     w_grad_pred_y = np.gradient(w_pred, dy, axis=2)
+    mag_grad_pred_y = np.gradient(mag_pred, dy, axis=2)
 
     u_grad_pred_x = np.gradient(u_pred, dx, axis=3)
     v_grad_pred_x = np.gradient(v_pred, dx, axis=3)
     w_grad_pred_x = np.gradient(w_pred, dx, axis=3)
+    mag_grad_pred_x = np.gradient(mag_pred, dx, axis=3)
 
-    u_grad_pred = np.sqrt(u_grad_pred_t**2 + u_grad_pred_z**2 + u_grad_pred_y**2 + u_grad_pred_x**2)
-    v_grad_pred = np.sqrt(v_grad_pred_t**2 + v_grad_pred_z**2 + v_grad_pred_y**2 + v_grad_pred_x**2)
-    w_grad_pred = np.sqrt(w_grad_pred_t**2 + w_grad_pred_z**2 + w_grad_pred_y**2 + w_grad_pred_x**2)
+    u_grad_pred = np.sqrt(u_grad_pred_z**2 + u_grad_pred_y**2 + u_grad_pred_x**2)
+    v_grad_pred = np.sqrt(v_grad_pred_z**2 + v_grad_pred_y**2 + v_grad_pred_x**2)
+    w_grad_pred = np.sqrt(w_grad_pred_z**2 + w_grad_pred_y**2 + w_grad_pred_x**2)
 
-    del(u_grad_pred_t, v_grad_pred_t, w_grad_pred_t, u_grad_pred_z, v_grad_pred_z, w_grad_pred_z, u_grad_pred_y, v_grad_pred_y, w_grad_pred_y, u_grad_pred_x, v_grad_pred_x, w_grad_pred_x)
+
+    del(u_grad_pred_z, v_grad_pred_z, w_grad_pred_z, u_grad_pred_y, v_grad_pred_y, w_grad_pred_y, u_grad_pred_x, v_grad_pred_x, w_grad_pred_x)
 
     #error fields
     u_error=u_pred-u
@@ -364,9 +373,18 @@ def evaluatePINN(
     u_grad_error=u_grad_pred-u_grad_true
     v_grad_error=v_grad_pred-v_grad_true
     w_grad_error=w_grad_pred-w_grad_true
+    u_t_error=u_grad_pred_t-u_grad_true_t
+    v_t_error=v_grad_pred_t-v_grad_true_t
+    w_t_error=w_grad_pred_t-w_grad_true_t
+    mag_x_error=mag_grad_pred_x-mag_grad_true_x
+    mag_y_error=mag_grad_pred_y-mag_grad_true_y
+    mag_z_error=mag_grad_pred_z-mag_grad_true_z
+    mag_t_error=mag_grad_pred_t-mag_grad_true_t
 
     np.savez("error_fields.npz", u_error=u_error, v_error=v_error, w_error=w_error, mag_error=mag_error,
-             u_grad_error=u_grad_error, v_grad_error=v_grad_error, w_grad_error=w_grad_error)
+             u_grad_error=u_grad_error, v_grad_error=v_grad_error, w_grad_error=w_grad_error, u_t_error=u_t_error,
+             v_t_error=v_t_error, w_t_error=w_t_error, mag_x_error=mag_x_error, mag_y_error=mag_y_error,
+             mag_z_error=mag_z_error, mag_t_error=mag_t_error)
 
     # Save separate VTI files for each time slice using VTK
 
@@ -396,6 +414,13 @@ def evaluatePINN(
         u_grad_err = u_grad_error[t_idx]
         v_grad_err = v_grad_error[t_idx]
         w_grad_err = w_grad_error[t_idx]
+        u_t_err = u_t_error[t_idx]
+        v_t_err = v_t_error[t_idx]
+        w_t_err = w_t_error[t_idx]
+        mag_x_err = mag_x_error[t_idx]
+        mag_y_err = mag_y_error[t_idx]
+        mag_z_err = mag_z_error[t_idx]
+        mag_t_err = mag_t_error[t_idx]
 
         # Create vtkImageData for this time slice
         image = vtk.vtkImageData()
@@ -415,6 +440,13 @@ def evaluatePINN(
         add_array(image, u_grad_err, "u_grad_error")
         add_array(image, v_grad_err, "v_grad_error")
         add_array(image, w_grad_err, "w_grad_error")
+        add_array(image, u_t_err, "u_t_error")
+        add_array(image, v_t_err, "v_t_error")
+        add_array(image, w_t_err, "w_t_error")
+        add_array(image, mag_x_err, "mag_x_error")
+        add_array(image, mag_y_err, "mag_y_error")
+        add_array(image, mag_z_err, "mag_z_error")
+        add_array(image, mag_t_err, "mag_t_error")
 
         # Write to VTI file
         writer = vtk.vtkXMLImageDataWriter()
@@ -431,6 +463,13 @@ def evaluatePINN(
     mae_u_grad = abs_mae(u_grad_pred.ravel(), u_grad_true.ravel())
     mae_v_grad = abs_mae(v_grad_pred.ravel(), v_grad_true.ravel())
     mae_w_grad = abs_mae(w_grad_pred.ravel(), w_grad_true.ravel())
+    mae_u_t = abs_mae(u_grad_pred_t.ravel(), u_grad_true_t.ravel())
+    mae_v_t = abs_mae(v_grad_pred_t.ravel(), v_grad_true_t.ravel())
+    mae_w_t = abs_mae(w_grad_pred_t.ravel(), w_grad_true_t.ravel())
+    mae_mag_x = abs_mae(mag_grad_pred_x.ravel(), mag_grad_true_x.ravel())
+    mae_mag_y = abs_mae(mag_grad_pred_y.ravel(), mag_grad_true_y.ravel())
+    mae_mag_z = abs_mae(mag_grad_pred_z.ravel(), mag_grad_true_z.ravel())
+    mae_mag_t = abs_mae(mag_grad_pred_t.ravel(), mag_grad_true_t.ravel())
 
     #Rel MAE
     rel_mae_u = rel_mae(u_pred.ravel(), u.ravel())
@@ -440,6 +479,13 @@ def evaluatePINN(
     rel_mae_u_grad = rel_mae(u_grad_pred.ravel(), u_grad_true.ravel())
     rel_mae_v_grad = rel_mae(v_grad_pred.ravel(), v_grad_true.ravel())
     rel_mae_w_grad = rel_mae(w_grad_pred.ravel(), w_grad_true.ravel())
+    rel_mae_u_t = rel_mae(u_grad_pred_t.ravel(), u_grad_true_t.ravel())
+    rel_mae_v_t = rel_mae(v_grad_pred_t.ravel(), v_grad_true_t.ravel())
+    rel_mae_w_t = rel_mae(w_grad_pred_t.ravel(), w_grad_true_t.ravel())
+    rel_mae_mag_x = rel_mae(mag_grad_pred_x.ravel(), mag_grad_true_x.ravel())
+    rel_mae_mag_y = rel_mae(mag_grad_pred_y.ravel(), mag_grad_true_y.ravel())
+    rel_mae_mag_z = rel_mae(mag_grad_pred_z.ravel(), mag_grad_true_z.ravel())
+    rel_mae_mag_t = rel_mae(mag_grad_pred_t.ravel(), mag_grad_true_t.ravel())
 
     #RMSE
     rmse_u = abs_rmse(u_pred.ravel(), u.ravel())
@@ -449,6 +495,13 @@ def evaluatePINN(
     rmse_u_grad = abs_rmse(u_grad_pred.ravel(), u_grad_true.ravel())
     rmse_v_grad = abs_rmse(v_grad_pred.ravel(), v_grad_true.ravel())
     rmse_w_grad = abs_rmse(w_grad_pred.ravel(), w_grad_true.ravel())
+    rmse_u_t = abs_rmse(u_grad_pred_t.ravel(), u_grad_true_t.ravel())
+    rmse_v_t = abs_rmse(v_grad_pred_t.ravel(), v_grad_true_t.ravel())
+    rmse_w_t = abs_rmse(w_grad_pred_t.ravel(), w_grad_true_t.ravel())
+    rmse_mag_x = abs_rmse(mag_grad_pred_x.ravel(), mag_grad_true_x.ravel())
+    rmse_mag_y = abs_rmse(mag_grad_pred_y.ravel(), mag_grad_true_y.ravel())
+    rmse_mag_z = abs_rmse(mag_grad_pred_z.ravel(), mag_grad_true_z.ravel())
+    rmse_mag_t = abs_rmse(mag_grad_pred_t.ravel(), mag_grad_true_t.ravel())
 
     #Rel RMSE
     rel_rmse_u = rel_rmse(u_pred.ravel(), u.ravel())
@@ -458,11 +511,18 @@ def evaluatePINN(
     rel_rmse_u_grad = rel_rmse(u_grad_pred.ravel(), u_grad_true.ravel())
     rel_rmse_v_grad = rel_rmse(v_grad_pred.ravel(), v_grad_true.ravel())
     rel_rmse_w_grad = rel_rmse(w_grad_pred.ravel(), w_grad_true.ravel())
+    rel_rmse_u_t = rel_rmse(u_grad_pred_t.ravel(), u_grad_true_t.ravel())
+    rel_rmse_v_t = rel_rmse(v_grad_pred_t.ravel(), v_grad_true_t.ravel())
+    rel_rmse_w_t = rel_rmse(w_grad_pred_t.ravel(), w_grad_true_t.ravel())
+    rel_rmse_mag_x = rel_rmse(mag_grad_pred_x.ravel(), mag_grad_true_x.ravel())
+    rel_rmse_mag_y = rel_rmse(mag_grad_pred_y.ravel(), mag_grad_true_y.ravel())
+    rel_rmse_mag_z = rel_rmse(mag_grad_pred_z.ravel(), mag_grad_true_z.ravel())
+    rel_rmse_mag_t = rel_rmse(mag_grad_pred_t.ravel(), mag_grad_true_t.ravel())
 
-    file.write(f"\nMAE (m/s): \n u: {mae_u:.4e} \n v: {mae_v:.4e} \n w: {mae_w:.4e} \n mag: {mae_mag:.4e} \n u_grad: {mae_u_grad:.4e} \n v_grad: {mae_v_grad:.4e} \n w_grad: {mae_w_grad:.4e}")
-    file.write(f"\nRel MAE (%): \n u: {rel_mae_u:.4e} \n v: {rel_mae_v:.4e} \n w: {rel_mae_w:.4e} \n mag: {rel_mae_mag:.4e} \n u_grad: {rel_mae_u_grad:.4e} \n v_grad: {rel_mae_v_grad:.4e} \n w_grad: {rel_mae_w_grad:.4e}")  
-    file.write(f"\nRMSE (m/s): \n u: {rmse_u:.4e} \n v: {rmse_v:.4e} \n w: {rmse_w:.4e} \n mag: {rmse_mag:.4e} \n u_grad: {rmse_u_grad:.4e} \n v_grad: {rmse_v_grad:.4e} \n w_grad: {rmse_w_grad:.4e}")
-    file.write(f"\nRel RMSE (%): \n u: {rel_rmse_u:.4e} \n v: {rel_rmse_v:.4e} \n w: {rel_rmse_w:.4e} \n mag: {rel_rmse_mag:.4e} \n u_grad: {rel_rmse_u_grad:.4e} \n v_grad: {rel_rmse_v_grad:.4e} \n w_grad: {rel_rmse_w_grad:.4e}")
+    file.write(f"\nMAE (m/s): \n u: {mae_u:.4e} \n v: {mae_v:.4e} \n w: {mae_w:.4e} \n mag: {mae_mag:.4e} \n u_grad: {mae_u_grad:.4e} \n v_grad: {mae_v_grad:.4e} \n w_grad: {mae_w_grad:.4e} \n u_t: {mae_u_t:.4e} \n v_t: {mae_v_t:.4e} \n w_t: {mae_w_t:.4e} \n mag_x: {mae_mag_x:.4e} \n mag_y: {mae_mag_y:.4e} \n mag_z: {mae_mag_z:.4e} \n mag_t: {mae_mag_t:.4e}")
+    file.write(f"\nRel MAE (%): \n u: {rel_mae_u:.4e} \n v: {rel_mae_v:.4e} \n w: {rel_mae_w:.4e} \n mag: {rel_mae_mag:.4e} \n u_grad: {rel_mae_u_grad:.4e} \n v_grad: {rel_mae_v_grad:.4e} \n w_grad: {rel_mae_w_grad:.4e} \n u_t: {rel_mae_u_t:.4e} \n v_t: {rel_mae_v_t:.4e} \n w_t: {rel_mae_w_t:.4e} \n mag_x: {rel_mae_mag_x:.4e} \n mag_y: {rel_mae_mag_y:.4e} \n mag_z: {rel_mae_mag_z:.4e} \n mag_t: {rel_mae_mag_t:.4e}")
+    file.write(f"\nRMSE (m/s): \n u: {rmse_u:.4e} \n v: {rmse_v:.4e} \n w: {rmse_w:.4e} \n mag: {rmse_mag:.4e} \n u_grad: {rmse_u_grad:.4e} \n v_grad: {rmse_v_grad:.4e} \n w_grad: {rmse_w_grad:.4e} \n u_t: {rmse_u_t:.4e} \n v_t: {rmse_v_t:.4e} \n w_t: {rmse_w_t:.4e} \n mag_x: {rmse_mag_x:.4e} \n mag_y: {rmse_mag_y:.4e} \n mag_z: {rmse_mag_z:.4e} \n mag_t: {rmse_mag_t:.4e}")
+    file.write(f"\nRel RMSE (%): \n u: {rel_rmse_u:.4e} \n v: {rel_rmse_v:.4e} \n w: {rel_rmse_w:.4e} \n mag: {rel_rmse_mag:.4e} \n u_grad: {rel_rmse_u_grad:.4e} \n v_grad: {rel_rmse_v_grad:.4e} \n w_grad: {rel_rmse_w_grad:.4e} \n u_t: {rel_rmse_u_t:.4e} \n v_t: {rel_rmse_v_t:.4e} \n w_t: {rel_rmse_w_t:.4e} \n mag_x: {rel_rmse_mag_x:.4e} \n mag_y: {rel_rmse_mag_y:.4e} \n mag_z: {rel_rmse_mag_z:.4e} \n mag_t: {rel_rmse_mag_t:.4e}")
 
     file.close()
 

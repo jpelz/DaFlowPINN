@@ -213,14 +213,14 @@ def binning_3D(data, lb, ub, t_step=48, nx=50, ny=50, nz=50, sigma=0.1):
 
 if __name__ == "__main__":
 
-    n = int(sys.argv[1])  # Set the number of rows to load
+    n = sys.argv[1]  # Set the number of rows to load
     sigma = float(sys.argv[2])  # Set the sigma value
 
     #t = 24
 
-    data = np.loadtxt(f"/scratch/jpelz/ma-pinns/TrackGen/History_n{n}_t150.txt", delimiter=" ")
-    lb = [-0.5, -1.5, -0.5]
-    ub = [7.5, 1.5, 0.5]
+    data = np.loadtxt(f"/scratch/jpelz/da-challenge/DA_CASE01/velocity_files/DA_CASE01_TR_ppp_0_{n}_velocities.dat", delimiter=" ", skiprows=1)
+    lb = [0, 1E-3, 1E-3]
+    ub = [0.1, 0.0991, 0.0991]
 
 
     #data = np.loadtxt("G:\Meine Ablage\MA\DA_CASE01/velocity_files\DA_CASE01_TR_ppp_0_010_velocities.dat", skiprows=1, delimiter=" ", max_rows=n)
@@ -228,7 +228,7 @@ if __name__ == "__main__":
 
 
     time_steps = np.unique(data[:, 4])[:]
-    output_dir = "/scratch/jpelz/ma-pinns/TrackGen/binned_data"
+    output_dir = "/scratch/jpelz/da-challenge/DA_CASE01/binned/"
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     root = ET.Element("VTKFile", type="Collection", version="0.1", byte_order="LittleEndian")
@@ -241,7 +241,7 @@ if __name__ == "__main__":
 
         U, V, W, centers = binning_3D(data, t_step=i, sigma=sigma,
                                       lb=lb, ub=ub,
-                                      nx=160, ny=80, nz=20)
+                                      nx=101, ny=100, nz=100)
 
         structured_grid = vtk.vtkImageData()
 

@@ -94,7 +94,7 @@ ub=[7.5, 1.5, 0.5, 15.0] #Upper bound of the domain (x, y, z, t)
 PINN.define_domain(lb, ub)
 
 #Add training data (has to be np.ndarray with the columns #ID,X,Y,Z,T,U,V,W)
-data = np.load("DaFlowPINN/examples/datasets/halfylinder_Re640/HalfcylinderTracks_p010_t14.5-15.dat", delimiter=" ")
+data = np.loadtxt("DaFlowPINN/examples/datasets/halfylinder_Re640/HalfcylinderTracks_p010_t14.5-15.dat", delimiter=" ")
 PINN.add_data_points(data)
 
 #Add Boundary Points:

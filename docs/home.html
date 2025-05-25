@@ -322,7 +322,7 @@
 </pre></div>
 </div>
 <p>Run example with configuration files:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>DAFlowPINN/examples/config_example.py<span class="w"> </span>DaFlowPINN/examples/basic_config.yaml
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>DaFlowPINN/examples/config_example.py<span class="w"> </span>DaFlowPINN/examples/basic_config.yaml
 </pre></div>
 </div>
 <p>Available configurations (all with 10k particles per timestep):</p>
@@ -340,6 +340,8 @@
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">DaFlowPINN</span><span class="w"> </span><span class="kn">import</span> <span class="n">PINN_3D</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">DaFlowPINN.model.architectures</span><span class="w"> </span><span class="kn">import</span> <span class="n">FCN</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">DaFlowPINN.boundaries</span><span class="w"> </span><span class="kn">import</span> <span class="n">surface_samplers</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">DaFlowPINN.boundaries.internal_geometries</span><span class="w"> </span><span class="kn">import</span> <span class="n">halfcylinder_3d</span>
 
 <span class="c1">#Define a PINN using a fully connected network (Re not relevant when no physics points)</span>
 
@@ -351,16 +353,23 @@
 <span class="n">ub</span><span class="o">=</span><span class="p">[</span><span class="mf">7.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">]</span> <span class="c1">#Upper bound of the domain (x, y, z, t)</span>
 <span class="n">PINN</span><span class="o">.</span><span class="n">define_domain</span><span class="p">(</span><span class="n">lb</span><span class="p">,</span> <span class="n">ub</span><span class="p">)</span>
 
-<span class="c1">#Add training data</span>
+<span class="c1">#Add training data (has to be np.ndarray with the columns #ID,X,Y,Z,T,U,V,W)</span>
 <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;DaFlowPINN/examples/datasets/halfylinder_Re640/HalfcylinderTracks_p010_t14.5-15.dat&quot;</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
 <span class="n">PINN</span><span class="o">.</span><span class="n">add_data_points</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
+<span class="c1">#Add Boundary Points:</span>
+<span class="n">sampler</span><span class="o">=</span><span class="n">surface_samplers</span><span class="o">.</span><span class="n">halfcylinder</span><span class="p">(</span><span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="o">=</span><span class="mf">0.125</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">tmin</span><span class="o">=</span><span class="n">lb</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">tmax</span><span class="o">=</span><span class="n">ub</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+<span class="n">PINN</span><span class="o">.</span><span class="n">add_boundary_condition</span><span class="p">(</span><span class="n">sampler</span><span class="p">,</span> <span class="n">N_BC_POINTS</span><span class="o">=</span><span class="mi">4096</span><span class="p">)</span>
+
+<span class="c1">#Add Physics Points:</span>
+<span class="n">PINN</span><span class="o">.</span><span class="n">add_physics_points</span><span class="p">(</span><span class="n">N_COLLOCATION</span><span class="o">=</span><span class="mi">8192</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="n">halfcylinder_3d</span><span class="p">(</span><span class="n">r</span><span class="o">=</span><span class="mf">0.125</span><span class="p">))</span>
+
 
 <span class="c1">#Select optimizer</span>
-<span class="n">PINN</span><span class="o">.</span><span class="n">add_optimizer</span><span class="p">(</span><span class="s2">&quot;adam&quot;</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="n">PINN</span><span class="o">.</span><span class="n">add_optimizer</span><span class="p">(</span><span class="s2">&quot;adam&quot;</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">)</span>
 
-<span class="c1">#Add plot</span>
-<span class="n">PINN</span><span class="o">.</span><span class="n">add_2D_plot</span><span class="p">(</span><span class="n">component1</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">component2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="c1">#Add XY plot of velocity magnitude and pressure</span>
+<span class="n">PINN</span><span class="o">.</span><span class="n">add_2D_plot</span><span class="p">(</span><span class="n">component1</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">component2</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
                  <span class="n">plot_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">dim3_slice</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">t_slice</span><span class="o">=</span><span class="mf">14.75</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="p">[</span><span class="mi">640</span><span class="p">,</span> <span class="mi">240</span><span class="p">])</span>
 
 <span class="n">PINN</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">epochs</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">print_freq</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">plot_freq</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>
@@ -371,11 +380,11 @@ The trained PINN is saved in <code class="docutils literal notranslate"><span cl
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">DaFlowPINN.model.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_predictable</span>
 
-<span class="n">pinn_prediction</span> <span class="o">=</span> <span class="n">load_predictable</span><span class="p">(</span><span class="s2">&quot;example_predictable.pt&quot;</span><span class="p">)</span>
+<span class="n">PINN_trained</span> <span class="o">=</span> <span class="n">load_predictable</span><span class="p">(</span><span class="s2">&quot;example_predictable.pt&quot;</span><span class="p">)</span>
 
 <span class="n">X</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">14.7</span><span class="p">])</span> <span class="c1">#X,Y,Z,T</span>
 
-<span class="n">Y</span> <span class="o">=</span> <span class="n">pinn_prediction</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="n">PINN_trained</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
 
 </pre></div>
 </div>

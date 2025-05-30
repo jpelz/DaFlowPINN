@@ -2,7 +2,7 @@
 
 <!-- Start Description -->
 
-**DaFlowPINN** is a modular and extensible Python framework for building and training Physics-Informed Neural Networks (PINNs) for data assimilation of incompressible, time-dependend 3D fluid flows. It is primaly developed for postprocessing of Particle Tracking Velocimetry (PTV) data during a master's thesis. It includes components for model definition, training customization, boundary condition handling, and postprocessing utilities.
+**DaFlowPINN** is a modular and extensible Python framework for building and training Physics-Informed Neural Networks (PINNs) for data assimilation of incompressible, time-dependend 3D fluid flows. It is primarily developed for postprocessing of Particle Tracking Velocimetry (PTV) data during a master's thesis. It includes components for model definition, training customization, boundary condition handling, and postprocessing utilities.
 
 ---
 <!-- End Description -->

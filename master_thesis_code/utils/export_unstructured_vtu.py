@@ -82,6 +82,6 @@ if __name__ == "__main__":
     pvd_entries = export_unstructured_series(data, output_dir="/scratch/jpelz/ma-pinns/TrackGen/binned_data", file_ending=file_ending)
     write_pvd(pvd_entries, output_dir="/scratch/jpelz/ma-pinns/TrackGen/binned_data", pvd_filename=f"particles_{file_ending}.pvd")
     
-    #data = np.loadtxt(f"/scratch/jpelz/da-challenge/DA_CASE01/velocity_files/DA_CASE01_TR_ppp_0_{name_ending}_velocities.dat", skiprows=1)
-    #pvd_entries = export_unstructured_series(data, output_dir="/scratch/jpelz/da-challenge/DA_CASE01/particles_vtu", file_ending=file_ending)
-    #write_pvd(pvd_entries, output_dir="/scratch/jpelz/da-challenge/DA_CASE01/particles_vtu", pvd_filename=f"particles_{file_ending}.pvd")
+    # data = np.loadtxt(f"/scratch/jpelz/da-challenge/DA_CASE01/velocity_files/DA_CASE01_TR_ppp_0_{name_ending}_velocities.dat", skiprows=1)
+    # pvd_entries = export_unstructured_series(data, output_dir="/scratch/jpelz/da-challenge/DA_CASE01/particles_vtu", file_ending=file_ending)
+    # write_pvd(pvd_entries, output_dir="/scratch/jpelz/da-challenge/DA_CASE01/particles_vtu", pvd_filename=f"particles_{file_ending}.pvd")

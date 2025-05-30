@@ -1,0 +1,77 @@
+# PTV-PINN config
+
+name: 6_WindowSize_HC_p200_2
+base_config: standard
+
+architecture:
+  nr_hidden: 512
+  nr_layers: 5
+  model: fully_connected
+  fourier_feature:
+    mapping_size: 512
+    scale_x: 0.25
+    scale_y: 1.2
+    scale_z: 1.5
+    scale_t: 0.3
+  hard_bc: False
+
+
+domain:
+  x_min: -0.5
+  y_min: -1.5
+  z_min: -0.5
+  x_max: 7.5
+  y_max: 1.5
+  z_max: 0.5
+  t_min: [13.4, 12.4, 11.4, 10.4]
+  t_max: 14.8
+
+data:
+  file: /scratch/jpelz/ma-pinns/TrackGen/History_n200000_t150.txt
+  #train_test_file: /scratch/jpelz/ma-pinns/final_sims/_datasets/HC_t_14.6_14.8_p050.npz
+  batch_size: 32768
+
+# boundary:
+#  nr_points: 60000
+#  weight: 1
+#  batch_size: 8192
+
+# physics:
+#  nr_points: 3000000
+#  batch_size: 4096
+#  weight: 1
+#  nr_batches: 1
+#  numerical: False
+
+
+training:
+  optim:
+    optimizer: adam
+    lr: 1.0e-4
+  #scheduler:
+    # type: ExponentialLR
+    # decay: 0.9999
+
+  epochs: 30000
+  print_freq: 100
+  plot_freq: 2500
+  # point_update_freq: 200
+  # keep_percentage: 80
+  # autoweight:
+  #   type: 2
+  #   freq: 100
+
+  # posttraining:
+  #   epochs: 25000
+  #   lr: 1
+  #   lbfgs_type: full_overlap
+
+validation:
+  validate: True
+  file: /scratch/jpelz/ma-pinns/TrackGen/halfcylinder.nc
+  nt_max: 3
+  nz_max: 30
+  ny_max: 90
+  nx_max: 240
+  z_plot: 0
+  t_plot: [14.6, 14.7, 14.8]

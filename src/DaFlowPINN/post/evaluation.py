@@ -407,20 +407,39 @@ def evaluatePINN(
 
     for t_idx in range(nt):
         # Extract error fields for this time slice
-        u_err = u_error[t_idx]
-        v_err = v_error[t_idx]
-        w_err = w_error[t_idx]
-        mag_err = mag_error[t_idx]
-        u_grad_err = u_grad_error[t_idx]
-        v_grad_err = v_grad_error[t_idx]
-        w_grad_err = w_grad_error[t_idx]
-        u_t_err = u_t_error[t_idx]
-        v_t_err = v_t_error[t_idx]
-        w_t_err = w_t_error[t_idx]
-        mag_x_err = mag_x_error[t_idx]
-        mag_y_err = mag_y_error[t_idx]
-        mag_z_err = mag_z_error[t_idx]
-        mag_t_err = mag_t_error[t_idx]
+        # Handle both single and multiple time slices
+        if nt > 1:
+            u_err = u_error[t_idx]
+            v_err = v_error[t_idx]
+            w_err = w_error[t_idx]
+            mag_err = mag_error[t_idx]
+            u_grad_err = u_grad_error[t_idx]
+            v_grad_err = v_grad_error[t_idx]
+            w_grad_err = w_grad_error[t_idx]
+            mag_x_err = mag_x_error[t_idx]
+            mag_y_err = mag_y_error[t_idx]
+            mag_z_err = mag_z_error[t_idx]
+            u_t_err = u_t_error[t_idx]
+            v_t_err = v_t_error[t_idx]
+            w_t_err = w_t_error[t_idx]
+            mag_t_err = mag_t_error[t_idx]
+        else:
+            # Remove the time axis if nt == 1, so shape is (nz, ny, nx)
+            u_err = np.squeeze(u_error, axis=0)
+            v_err = np.squeeze(v_error, axis=0)
+            w_err = np.squeeze(w_error, axis=0)
+            mag_err = np.squeeze(mag_error, axis=0)
+            u_grad_err = np.squeeze(u_grad_error, axis=0)
+            v_grad_err = np.squeeze(v_grad_error, axis=0)
+            w_grad_err = np.squeeze(w_grad_error, axis=0)
+            mag_x_err = np.squeeze(mag_x_error, axis=0)
+            mag_y_err = np.squeeze(mag_y_error, axis=0)
+            mag_z_err = np.squeeze(mag_z_error, axis=0)
+            u_t_err = np.squeeze(u_t_error, axis=0)
+            v_t_err = np.squeeze(v_t_error, axis=0)
+            w_t_err = np.squeeze(w_t_error, axis=0)
+            mag_t_err = np.squeeze(mag_t_error, axis=0)
+
 
         # Create vtkImageData for this time slice
         image = vtk.vtkImageData()
@@ -440,13 +459,16 @@ def evaluatePINN(
         add_array(image, u_grad_err, "u_grad_error")
         add_array(image, v_grad_err, "v_grad_error")
         add_array(image, w_grad_err, "w_grad_error")
-        add_array(image, u_t_err, "u_t_error")
-        add_array(image, v_t_err, "v_t_error")
-        add_array(image, w_t_err, "w_t_error")
+        
         add_array(image, mag_x_err, "mag_x_error")
         add_array(image, mag_y_err, "mag_y_error")
         add_array(image, mag_z_err, "mag_z_error")
-        add_array(image, mag_t_err, "mag_t_error")
+
+        if nt > 1:
+            add_array(image, u_t_err, "u_t_error")
+            add_array(image, v_t_err, "v_t_error")
+            add_array(image, w_t_err, "w_t_error")
+            add_array(image, mag_t_err, "mag_t_error")
 
         # Write to VTI file
         writer = vtk.vtkXMLImageDataWriter()
@@ -463,13 +485,18 @@ def evaluatePINN(
     mae_u_grad = abs_mae(u_grad_pred.ravel(), u_grad_true.ravel())
     mae_v_grad = abs_mae(v_grad_pred.ravel(), v_grad_true.ravel())
     mae_w_grad = abs_mae(w_grad_pred.ravel(), w_grad_true.ravel())
-    mae_u_t = abs_mae(u_grad_pred_t.ravel(), u_grad_true_t.ravel())
-    mae_v_t = abs_mae(v_grad_pred_t.ravel(), v_grad_true_t.ravel())
-    mae_w_t = abs_mae(w_grad_pred_t.ravel(), w_grad_true_t.ravel())
+    
     mae_mag_x = abs_mae(mag_grad_pred_x.ravel(), mag_grad_true_x.ravel())
     mae_mag_y = abs_mae(mag_grad_pred_y.ravel(), mag_grad_true_y.ravel())
     mae_mag_z = abs_mae(mag_grad_pred_z.ravel(), mag_grad_true_z.ravel())
-    mae_mag_t = abs_mae(mag_grad_pred_t.ravel(), mag_grad_true_t.ravel())
+
+    if nt > 1:
+        mae_u_t = abs_mae(u_grad_pred_t.ravel(), u_grad_true_t.ravel())
+        mae_v_t = abs_mae(v_grad_pred_t.ravel(), v_grad_true_t.ravel())
+        mae_w_t = abs_mae(w_grad_pred_t.ravel(), w_grad_true_t.ravel())
+        mae_mag_t = abs_mae(mag_grad_pred_t.ravel(), mag_grad_true_t.ravel())
+    else:
+        mae_u_t = mae_v_t = mae_w_t = mae_mag_t = 0
 
     #Rel MAE
     rel_mae_u = rel_mae(u_pred.ravel(), u.ravel())
@@ -479,13 +506,19 @@ def evaluatePINN(
     rel_mae_u_grad = rel_mae(u_grad_pred.ravel(), u_grad_true.ravel())
     rel_mae_v_grad = rel_mae(v_grad_pred.ravel(), v_grad_true.ravel())
     rel_mae_w_grad = rel_mae(w_grad_pred.ravel(), w_grad_true.ravel())
-    rel_mae_u_t = rel_mae(u_grad_pred_t.ravel(), u_grad_true_t.ravel())
-    rel_mae_v_t = rel_mae(v_grad_pred_t.ravel(), v_grad_true_t.ravel())
-    rel_mae_w_t = rel_mae(w_grad_pred_t.ravel(), w_grad_true_t.ravel())
+    
     rel_mae_mag_x = rel_mae(mag_grad_pred_x.ravel(), mag_grad_true_x.ravel())
     rel_mae_mag_y = rel_mae(mag_grad_pred_y.ravel(), mag_grad_true_y.ravel())
     rel_mae_mag_z = rel_mae(mag_grad_pred_z.ravel(), mag_grad_true_z.ravel())
-    rel_mae_mag_t = rel_mae(mag_grad_pred_t.ravel(), mag_grad_true_t.ravel())
+
+    if nt > 1:
+        rel_mae_u_t = rel_mae(u_grad_pred_t.ravel(), u_grad_true_t.ravel())
+        rel_mae_v_t = rel_mae(v_grad_pred_t.ravel(), v_grad_true_t.ravel())
+        rel_mae_w_t = rel_mae(w_grad_pred_t.ravel(), w_grad_true_t.ravel())
+        rel_mae_mag_t = rel_mae(mag_grad_pred_t.ravel(), mag_grad_true_t.ravel())
+    else:
+        rel_mae_mag_t = rel_mae_u_t = rel_mae_v_t = rel_mae_w_t = 0
+    
 
     #RMSE
     rmse_u = abs_rmse(u_pred.ravel(), u.ravel())
@@ -495,13 +528,18 @@ def evaluatePINN(
     rmse_u_grad = abs_rmse(u_grad_pred.ravel(), u_grad_true.ravel())
     rmse_v_grad = abs_rmse(v_grad_pred.ravel(), v_grad_true.ravel())
     rmse_w_grad = abs_rmse(w_grad_pred.ravel(), w_grad_true.ravel())
-    rmse_u_t = abs_rmse(u_grad_pred_t.ravel(), u_grad_true_t.ravel())
-    rmse_v_t = abs_rmse(v_grad_pred_t.ravel(), v_grad_true_t.ravel())
-    rmse_w_t = abs_rmse(w_grad_pred_t.ravel(), w_grad_true_t.ravel())
+    
     rmse_mag_x = abs_rmse(mag_grad_pred_x.ravel(), mag_grad_true_x.ravel())
     rmse_mag_y = abs_rmse(mag_grad_pred_y.ravel(), mag_grad_true_y.ravel())
     rmse_mag_z = abs_rmse(mag_grad_pred_z.ravel(), mag_grad_true_z.ravel())
-    rmse_mag_t = abs_rmse(mag_grad_pred_t.ravel(), mag_grad_true_t.ravel())
+
+    if nt > 1:
+        rmse_u_t = abs_rmse(u_grad_pred_t.ravel(), u_grad_true_t.ravel())
+        rmse_v_t = abs_rmse(v_grad_pred_t.ravel(), v_grad_true_t.ravel())
+        rmse_w_t = abs_rmse(w_grad_pred_t.ravel(), w_grad_true_t.ravel())
+        rmse_mag_t = abs_rmse(mag_grad_pred_t.ravel(), mag_grad_true_t.ravel())
+    else:
+        rmse_u_t = rmse_v_t = rmse_w_t = rmse_mag_t = 0
 
     #Rel RMSE
     rel_rmse_u = rel_rmse(u_pred.ravel(), u.ravel())
@@ -511,13 +549,18 @@ def evaluatePINN(
     rel_rmse_u_grad = rel_rmse(u_grad_pred.ravel(), u_grad_true.ravel())
     rel_rmse_v_grad = rel_rmse(v_grad_pred.ravel(), v_grad_true.ravel())
     rel_rmse_w_grad = rel_rmse(w_grad_pred.ravel(), w_grad_true.ravel())
-    rel_rmse_u_t = rel_rmse(u_grad_pred_t.ravel(), u_grad_true_t.ravel())
-    rel_rmse_v_t = rel_rmse(v_grad_pred_t.ravel(), v_grad_true_t.ravel())
-    rel_rmse_w_t = rel_rmse(w_grad_pred_t.ravel(), w_grad_true_t.ravel())
+    
     rel_rmse_mag_x = rel_rmse(mag_grad_pred_x.ravel(), mag_grad_true_x.ravel())
     rel_rmse_mag_y = rel_rmse(mag_grad_pred_y.ravel(), mag_grad_true_y.ravel())
     rel_rmse_mag_z = rel_rmse(mag_grad_pred_z.ravel(), mag_grad_true_z.ravel())
-    rel_rmse_mag_t = rel_rmse(mag_grad_pred_t.ravel(), mag_grad_true_t.ravel())
+
+    if nt > 1:
+        rel_rmse_u_t = rel_rmse(u_grad_pred_t.ravel(), u_grad_true_t.ravel())
+        rel_rmse_v_t = rel_rmse(v_grad_pred_t.ravel(), v_grad_true_t.ravel())
+        rel_rmse_w_t = rel_rmse(w_grad_pred_t.ravel(), w_grad_true_t.ravel())
+        rel_rmse_mag_t = rel_rmse(mag_grad_pred_t.ravel(), mag_grad_true_t.ravel())
+    else:
+        rel_rmse_mag_t = rel_rmse_u_t = rel_rmse_v_t = rel_rmse_w_t = 0
 
     file.write(f"\nMAE (m/s): \n u: {mae_u:.4e} \n v: {mae_v:.4e} \n w: {mae_w:.4e} \n mag: {mae_mag:.4e} \n u_grad: {mae_u_grad:.4e} \n v_grad: {mae_v_grad:.4e} \n w_grad: {mae_w_grad:.4e} \n u_t: {mae_u_t:.4e} \n v_t: {mae_v_t:.4e} \n w_t: {mae_w_t:.4e} \n mag_x: {mae_mag_x:.4e} \n mag_y: {mae_mag_y:.4e} \n mag_z: {mae_mag_z:.4e} \n mag_t: {mae_mag_t:.4e}")
     file.write(f"\nRel MAE (%): \n u: {rel_mae_u:.4e} \n v: {rel_mae_v:.4e} \n w: {rel_mae_w:.4e} \n mag: {rel_mae_mag:.4e} \n u_grad: {rel_mae_u_grad:.4e} \n v_grad: {rel_mae_v_grad:.4e} \n w_grad: {rel_mae_w_grad:.4e} \n u_t: {rel_mae_u_t:.4e} \n v_t: {rel_mae_v_t:.4e} \n w_t: {rel_mae_w_t:.4e} \n mag_x: {rel_mae_mag_x:.4e} \n mag_y: {rel_mae_mag_y:.4e} \n mag_z: {rel_mae_mag_z:.4e} \n mag_t: {rel_mae_mag_t:.4e}")

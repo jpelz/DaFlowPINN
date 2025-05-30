@@ -1,0 +1,64 @@
+# PTV-PINN config
+
+name: 4_optim_DA_p050_lbfgs_armijo
+base_config: standard
+
+architecture:
+  nr_hidden: 512
+  nr_layers: 5
+  model: fully_connected
+  fourier_feature:
+    mapping_size: 512
+    scale_x: 5
+    scale_y: 5
+    scale_z: 5
+    scale_t: 0.5
+  hard_bc: False
+
+domain:
+  # t_min: 0.136
+  # t_max: 0.148
+  nt: 3
+
+data:
+  file: /scratch/jpelz/da-challenge/DA_CASE01/velocity_files/DA_CASE01_TR_ppp_0_050_velocities.dat
+  train_test_file: /scratch/jpelz/ma-pinns/final_sims/_datasets/DA_CASE01_t_23_25_p050.npz
+  batch_size: 16384
+
+boundary:
+ nr_points: 60000
+ batch_size: 8192
+ weight: 1
+
+physics:
+  nr_points: 3000000
+  batch_size: 4096
+  nr_batches: 1
+  weight: 1
+  numerical: False
+
+training:
+  optim:
+    optimizer: adam2
+    lr: 1.0E-4
+  # scheduler:
+  #   type: ExponentialLR
+  #   decay: 0.9999
+
+  autoweight:
+    type: 5
+    freq: 100
+    
+  epochs: 5000
+  print_freq: 50
+  plot_freq: 2500
+  # point_update_freq: 2000
+  # keep_percentage: 50
+
+  posttraining:
+   lr: 1
+   epochs: 45000
+   lbfgs_type: full_overlap
+
+  
+

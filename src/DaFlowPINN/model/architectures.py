@@ -85,7 +85,7 @@ class HardBC(nn.Module):
 
 class RFF(nn.Module):
     """Defines a random Fourier feature layer in PyTorch. This layer is used to project the input tensor into a higher-dimensional space using random Fourier features. The projection is done using a linear transformation followed by sine and cosine transformations."""
-    def __init__(self, n_freqs: int = 16, scales: list = [1, 1, 1, 1]):
+    def __init__(self, n_freqs: int = 16, scales: list = [1.0, 1.0, 1.0, 1.0]):
         """
         Initializes the Random Fourier Feature (RFF) layer.
 

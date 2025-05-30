@@ -67,10 +67,10 @@ class Network(nn.Module):
       self.fourier_feature: bool = True
       mapping_size: int = kwargs.get('mapping_size', 512)
       self.mapping_size: int = mapping_size if mapping_size is not None else 512
-      scale_x: float = kwargs.get('scale_x', 1)
-      scale_y: float = kwargs.get('scale_y', 1)
-      scale_z: float = kwargs.get('scale_z', 1)
-      scale_t: float = kwargs.get('scale_t', 1)
+      scale_x: float = kwargs.get('scale_x', 1.0)
+      scale_y: float = kwargs.get('scale_y', 1.0)
+      scale_z: float = kwargs.get('scale_z', 1.0)
+      scale_t: float = kwargs.get('scale_t', 1.0)
       # Input dim: 4, output dim: 2*mapping_size after RFF
       self.network: nn.Module = model(2 * self.mapping_size, 4, N_NEURONS, N_LAYERS)
       self.rff: RFF = RFF(n_freqs=self.mapping_size, scales=[scale_x, scale_y, scale_z, scale_t])
@@ -299,9 +299,14 @@ class PINN_3D(nn.Module):
       torch.Tensor: Output tensor after passing through the model and redimensionalizing.
     """
     # Apply dimensionless transformation to the input
+    #print(min(x[:, 1]), max(x[:, 1]))
+
     x_dimless = self.dimensionless(x)
+
+    #print(min(x_dimless[:, 1]), max(x_dimless[:, 1]))
     
     # Pass the dimensionless input through the model
+    #print(min(self.normalize(x_dimless)[:, 1]), max(self.normalize(x_dimless)[:, 1]))
     y_dimless = self.model(self.normalize(x_dimless))
     
     # Redimensionalize the model output
@@ -324,6 +329,11 @@ class PINN_3D(nn.Module):
       raise TypeError("Input x must be a torch.Tensor")
     
     # Apply dimensionless transformation and pass through the CPU model
+    #print(min(x[:, 1]), max(x[:, 1]))
+    #print(min(self.dimensionless(x)[:, 1]), max(self.dimensionless(x)[:, 1]))
+    #print(min(self.normalize(self.dimensionless(x))[:, 1]), max(self.normalize(self.dimensionless(x))[:, 1]))
+
+
     y = self.model_cpu(self.normalize(self.dimensionless(x)))
     
     # Redimensionalize the model output
@@ -523,7 +533,7 @@ class PINN_3D(nn.Module):
 
 
 #MARK: - Data Handling
-  def add_data_points(self, data: np.ndarray, batch_size = None, test_size = 0.05, train_test_file = None, n_acc: int = 1) -> None:
+  def add_data_points(self, data: np.ndarray, batch_size = None, test_size = 0.05, train_test_file = None, n_acc: int = 1, weight: float = 1.0) -> None:
     """
     Adds data points for supervised learning to the PINN model, applies dimensionless transformation and normalization, and prepares train/test splits.
 
@@ -536,6 +546,7 @@ class PINN_3D(nn.Module):
       test_size (float, optional): Fraction of data to use for testing. Default is 0.05.
       train_test_file (str, optional): Path to a .npz file with precomputed train/test splits.
       n_acc (int, optional): Number of batches for gradient accumulation. Default is 1.
+      weight (float, optional): Weight for the data points. Default is 1.0.
     """
 
     if data.shape[1] < 8:
@@ -543,6 +554,7 @@ class PINN_3D(nn.Module):
 
     self.data = data
     self.test_size = test_size
+    self.lambda_data = weight
 
     # Extract input (X) and output (Y) tensors from the data array
     X = torch.from_numpy(data[:, 1:5]).float()  # x, y, z, t
@@ -847,7 +859,7 @@ class PINN_3D(nn.Module):
     self.optim_lr=lr
     self.optim = optim
     if optim == "adam":
-      self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr) #betas=(.95, .95)
+      self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr) #betas=(.9, .999)
     elif optim == "adam2":
       self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr, betas=(.95, .95))
     elif optim == "soap":
@@ -882,7 +894,7 @@ class PINN_3D(nn.Module):
     if lbfgs_type == "standard":
       self.post_optimizer = torch.optim.LBFGS(self.model.parameters(), lr=lr)
     elif lbfgs_type == "full_overlap": 
-      self.post_optimizer = LBFGS(self.model.parameters(), lr=lr, line_search='None')
+      self.post_optimizer = LBFGS(self.model.parameters(), lr=lr, line_search='Armijo')
       #May not work on multiple GPUs
     elif lbfgs_type == "multibatch":
       self.post_optimizer = LBFGS(self.model.parameters(), lr=lr, line_search='None')
@@ -1653,9 +1665,7 @@ class PINN_3D(nn.Module):
       self.step()  # Perform a single optimization step
 
     if self.post_optimizer is not None:
-      # if self.scheduler is not None:
-      #   self.scheduler.optimizer = self.post_optimizer
-
+      self.scheduler = None
       while self.epoch <= (epochs+self.post_epochs):
         self.step()
 
@@ -1926,7 +1936,6 @@ def load_predictable(path: str) -> PINN_3D:
   PINN.norm_offsets = checkpoint['norm_offsets']
   PINN.plot_setups = checkpoint['plot_setups']
   
-
   if isinstance(PINN.model, DataParallel):
     PINN.model.module.load_state_dict(checkpoint['model_state_dict'])
   else:

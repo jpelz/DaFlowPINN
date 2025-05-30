@@ -56,8 +56,6 @@ class WeightUpdater:
       for i in range(len(current_weights)):
         new_weights.append(sum(grad_norms) / grad_norms[i])
 
-      # Optionally normalize by max_weight (commented out)
-      # max_weight = max(new_weights)
       for i in range(len(current_weights)):
         new_weights[i] = self.alpha * current_weights[i] + (1 - self.alpha) * new_weights[i]
 
@@ -87,6 +85,22 @@ class WeightUpdater:
 
       # NS weight is set to 1
       new_weights.append(torch.tensor(1, device=self.device).float())
+
+    elif self.scheme == 5:
+      # Source: Wang et al. - 2023 arXiv:2308.08468v1 - modified to let sum of weights be 1
+      grad_norms: List[torch.Tensor] = [g.norm() for g in grads]
+      for i in range(len(current_weights)):
+        new_weights.append(sum(grad_norms) / grad_norms[i])
+
+      # Normalize weights to sum to 1
+      total_weight = sum(new_weights)
+      for i in range(len(new_weights)):
+        new_weights[i] /= total_weight
+
+      for i in range(len(current_weights)):
+        new_weights[i] = self.alpha * current_weights[i] + (1 - self.alpha) * new_weights[i]
+
+      
 
     else:
       raise ValueError("Invalid auto weight type.")

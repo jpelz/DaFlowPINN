@@ -63,12 +63,14 @@ Run example with configuration files:
 python DaFlowPINN/examples/config_example.py DaFlowPINN/examples/basic_config.yaml
 ```
 
+<!-- 
 Available configurations (all with 10k particles per timestep):
 - basic_conig.yaml (Vanilla PINN Setup)
 - rff_config.yaml (PINN with Fourier Feature Embeddings)
 - hbc_config.yaml (PINN with forced exact boundary conditions using approximate distance functions)
+-->
 
-To change the seeding density, epochs, optimizer,... edit the *.yaml files or create your own.
+To change the seeding density, epochs, optimizer,... edit the *.yaml file or create your own.
 
 ---
 

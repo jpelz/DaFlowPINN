@@ -7,12 +7,12 @@ architecture:
   nr_hidden: 512
   nr_layers: 12
   model: fully_connected
-  fourier_feature:
-    mapping_size: 512
-    scale_x: 0.25
-    scale_y: 1.2
-    scale_z: 1.5
-    scale_t: 0.3
+  #fourier_feature:
+  #  mapping_size: 512
+  #  scale_x: 0.25
+  #  scale_y: 1.2
+  #  scale_z: 1.5
+  #  scale_t: 0.3
   hard_bc: False
 
 

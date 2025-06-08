@@ -1,12 +1,8 @@
-import sys
-sys.path.append('/scratch/jpelz/ma-pinns/_project/src')
-
-
-
 import numpy as np
 import torch
 
 import os
+import sys
 import time
 
 
@@ -19,7 +15,7 @@ from DaFlowPINN.model.architectures import FCN, WangResNet
 from DaFlowPINN.config import Config
 
 from DaFlowPINN.post.evaluation import evaluatePINN, plotTruthXY
-from DaFlowPINN.post.export import export_h5, export_vts
+from DaFlowPINN.post.export import export_h5, export_vts, export_vti
 
 from DaFlowPINN.training.optim.scheduler import ReduceLROnPlateau_custom, WarmupScheduler
 
@@ -58,8 +54,6 @@ def PINN_Setup(conf: Config):
                   fourier_feature=rff, **kwargs)
 
 
-    print(f'PINN initialized (time: {time.time() - start} s)')
-    clock = time.time()
 
     #Define Domain
 
@@ -76,13 +70,14 @@ def PINN_Setup(conf: Config):
 
     #Add Data Points
     if hasattr(conf, 'data'):
+      train_test_file =  conf.data.train_test_file if hasattr(conf.data, 'train_test_file') else None
       data=np.loadtxt(conf.data.file, delimiter=" ", skiprows=1)
       t_filter=np.bitwise_and(data[:,4]>=(conf.domain.t_min-0.01), data[:,4]<=(conf.domain.t_max+0.01))
       data=data[t_filter,:]
 
       batch_size = conf.data.batch_size if hasattr(conf.data, 'batch_size') else None
 
-      PINN.add_data_points(data, batch_size)
+      PINN.add_data_points(data, batch_size, train_test_file=train_test_file)
 
 
 
@@ -93,12 +88,26 @@ def PINN_Setup(conf: Config):
       batch_size = conf.boundary.batch_size if hasattr(conf.boundary, 'batch_size') else None
       PINN.add_boundary_condition(sampler, conf.boundary.nr_points, weight=conf.boundary.weight, batch_size=batch_size)
 
+
     #Physics Points:
     if hasattr(conf, 'physics'):
+      numerical = conf.physics.numerical if hasattr(conf.physics, 'numerical') else False
       batch_size = conf.physics.batch_size if hasattr(conf.physics, 'batch_size') else None
       PINN.add_physics_points(conf.physics.nr_points, batch_size, geometry=halfcylinder_3d(r=0.125),
-                              weight=conf.physics.weight, n_acc=conf.physics.nr_batches)
-      
+                              weight=conf.physics.weight, numerical=numerical, n_acc=conf.physics.nr_batches,
+)
+
+      if hasattr(conf.physics, 'collocation_growth'):
+        kwargs = {}
+        if conf.physics.collocation_growth.type == 'exponential':
+          kwargs['epsilon'] = conf.physics.collocation_growth.epsilon
+        PINN.add_collocation_growth(conf.physics.nr_points,
+                                    conf.physics.collocation_growth.max_points,
+                                    conf.physics.collocation_growth.epoch_start,
+                                    conf.physics.collocation_growth.epoch_end,
+                                    increase_scheme=conf.physics.collocation_growth.type,
+                                    **kwargs)
+
     #Optimizer
     PINN.add_optimizer(conf.training.optim.optimizer, lr=conf.training.optim.lr)
 
@@ -125,20 +134,22 @@ def PINN_Setup(conf: Config):
 
 
     #add plots
-    t_plot=14.70
+    t_plot=14.7
     z_plot=-0.01
 
     #velocity magnitude & pressure in XY plane
-    PINN.add_2D_plot([0,1], z_plot, t_plot, plot_data=False, resolution=[640, 240], centered2 = False)
+    PINN.add_2D_plot([0,1], z_plot, t_plot, plot_data=False, resolution=[320, 120], centered2 = False)
     #velocity magnitude & pressure in XY plane
-    PINN.add_2D_plot([0,1], z_plot, t_plot, plot_data=True, resolution=[640, 240], centered2 = False)
+    PINN.add_2D_plot([0,1], z_plot, t_plot, plot_data=True, resolution=[320, 120], centered2 = False)
 
     #u-plot in XY plane
-    PINN.add_2D_plot([0,1], z_plot, t_plot, plot_data=False, resolution=[640, 240], component1=1, component2=None, centered1=True)
+    PINN.add_2D_plot([0,1], z_plot, t_plot, plot_data=True, resolution=[320, 120], component1=1, component2=1, centered1=False, centered2=False)
 
-    #v- & w-plot in XY plane
-    PINN.add_2D_plot([0,1], z_plot, t_plot, plot_data=False, resolution=[640, 240], component1=2, component2=3, centered1=True, centered2=True)
+    #v in XY plane
+    PINN.add_2D_plot([0,1], z_plot, t_plot, plot_data=True, resolution=[320, 120], component1=2, component2=2, centered1=True, centered2=True)
 
+    #w in XY plane
+    PINN.add_2D_plot([0,1], z_plot, t_plot, plot_data=True, resolution=[320, 120], component1=3, component2=3, centered1=True, centered2=True)
 
 
     #Train PINN
@@ -146,31 +157,38 @@ def PINN_Setup(conf: Config):
     autoweight = conf.training.autoweight.type if hasattr(conf.training, 'autoweight') else None
     freq = conf.training.autoweight.freq if hasattr(conf.training, 'autoweight') else None
 
+    print(f'Setup complete (time: {time.time() - start} s)')
+
     PINN.train(conf.training.epochs, conf.training.print_freq, conf.training.plot_freq,
-              conf.training.point_update_freq, conf.training.keep_percentage, gradient_accumulation=False, autoweight_scheme=autoweight, autoweight_freq=freq)
+              conf.training.point_update_freq, conf.training.keep_percentage, autoweight_scheme=autoweight, autoweight_freq=freq)
     end=time.time()
 
     save_predictable(PINN, f'{conf.name}_predictable.pt')
 
     duration=f"{(end-start)/60} minutes"
-    print(f'Training complete (time: {duration} minutes)')
 
     #Export result
-    x = np.linspace(conf.domain.x_min, conf.domain.x_max, 320)
-    y = np.linspace(conf.domain.y_min, conf.domain.y_max, 120)
-    z = np.linspace(conf.domain.z_min, conf.domain.z_max, 50)
-    t = np.linspace(conf.domain.t_min, conf.domain.t_max, 6)
+    nx = 320
+    ny = 120
+    nz = 40
 
-    dx = (x.max() - x.min()) / (len(x) - 1)
-    dy = (y.max() - y.min()) / (len(y) - 1)
-    dz = (z.max() - z.min()) / (len(z) - 1)
+    dx = (conf.domain.x_max - conf.domain.x_min) / nx
+    dy = (conf.domain.y_max - conf.domain.y_min) / ny
+    dz = (conf.domain.z_max - conf.domain.z_min) / nz
+
+    x = np.linspace(conf.domain.x_min+dx/2, conf.domain.x_max-dx/2, nx)
+    y = np.linspace(conf.domain.y_min+dy/2, conf.domain.y_max-dy/2, ny)
+    z = np.linspace(conf.domain.z_min+dz/2, conf.domain.z_max-dz/2, nz)
+    t = np.linspace(conf.domain.t_max-0.2, conf.domain.t_max, 3)
+
 
     y_grid, x_grid, z_grid = np.meshgrid(y, x, z)
 
     print('Exporting result...')
-    export_h5(PINN.get_forward_callable(), x_grid, y_grid, z_grid, t, dx, dy, dz, f'{conf.name}_result_t{t:.2f}.h5')
+    #export_h5(PINN.get_forward_callable(), x_grid, y_grid, z_grid, t, dx, dy, dz, f'{conf.name}_result_t{t:.2f}.h5')
 
-    export_vts(PINN.get_forward_callable(), x_grid, y_grid, z_grid, t, f'{conf.name}')
+    export_vti(PINN.get_forward_callable(), x_grid, y_grid, z_grid, t, f'{conf.name}')
+
 
 
 if __name__ == "__main__":

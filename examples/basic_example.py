@@ -34,7 +34,7 @@ def run_PINN():
 
     #Add Boundary Points:
     sampler=surface_samplers.halfcylinder(center=[0,0,0], r=0.125, h=1, tmin=lb[3], tmax=ub[3])
-    PINN.add_boundary_condition(sampler, N_BC_POINTS=4096)
+    PINN.add_boundary_condition(sampler, N_BC_POINTS=4096, weight=1)
 
     #Add Physics Points:
     PINN.add_physics_points(N_COLLOCATION=8192, batch_size=1024, geometry=halfcylinder_3d(r=0.125))

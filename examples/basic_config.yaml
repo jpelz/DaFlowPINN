@@ -1,6 +1,6 @@
 # PTV-PINN config
 
-name: ConfigExampleRFF_Halfcylinder_Re640_p050
+name: ConfigExampleBasic_Halfcylinder_Re640_p050
 base_config: standard
 
 architecture:

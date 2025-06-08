@@ -1,0 +1,69 @@
+# PTV-PINN config
+
+name: ConfigExampleRFF_Halfcylinder_Re640_p050
+base_config: standard
+
+architecture:
+  nr_hidden: 512
+  nr_layers: 12
+  model: fully_connected
+  fourier_feature:
+    mapping_size: 512
+    scale_x: 0.25
+    scale_y: 1.2
+    scale_z: 1.5
+    scale_t: 0.3
+  hard_bc: False
+
+
+domain:
+  x_min: -0.5
+  y_min: -1.5
+  z_min: -0.5
+  x_max: 7.5
+  y_max: 1.5
+  z_max: 0.5
+  t_min: 14.6
+  t_max: 14.8
+
+data:
+  file: /content/DaFlowPINN/examples/datasets/halfylinder_Re640/HalfcylinderTracks_p050_t14.5-15.dat
+  batch_size: 32768
+
+boundary:
+ nr_points: 60000
+ weight: 1
+ batch_size: 8192
+
+physics:
+ nr_points: 3000000
+ batch_size: 4096
+ weight: 1
+ nr_batches: 1
+ numerical: False
+
+
+training:
+  optim:
+    optimizer: soap
+    lr: 1.0e-3
+  scheduler:
+    type: ExponentialLR
+    decay: 0.99995
+
+  epochs: 30000
+  print_freq: 100
+  plot_freq: 2500
+  # point_update_freq: 200
+  # keep_percentage: 80
+  autoweight:
+    type: 2
+    freq: 100
+
+  # posttraining:
+  #   epochs: 25000
+  #   lr: 1
+  #   lbfgs_type: full_overlap
+
+validation:
+  validate: False
